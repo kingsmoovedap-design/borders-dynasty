@@ -1,3 +1,10 @@
+let contractAddress = "Not deployed";
+try {
+  const deployed = JSON.parse(fs.readFileSync("deployed.json"));
+  contractAddress = deployed.address || "Unknown";
+} catch (err) {
+  console.warn("⚠️ Could not load deployed.json — using fallback");
+}
 require("dotenv").config();
 const express = require("express");
 const { ethers } = require("ethers");
