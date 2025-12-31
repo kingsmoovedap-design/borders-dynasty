@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  borders-dynasty:
+    build: .
+    container_name: borders-dynasty
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    networks:
+      - codexchain
+
+networks:
+  codexchain:
+    driver: bridge
