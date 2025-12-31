@@ -1,16 +1,21 @@
 services:
   - type: web
-    name: borders-webhook
-    env: node
+    name: borders-dynasty
+    env: docker
     plan: free
-    buildCommand: npm install
-    startCommand: npm start
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    buildCommand: ""
+    startCommand: "node server.js"
     envVars:
       - key: RPC_URL
         sync: false
       - key: PRIVATE_KEY
         sync: false
-      - key: ETHERSCAN_API_KEY
+      - key: ALCHEMY_AUTH_TOKEN
         sync: false
-      - key: PORT
-        value: 3000
+      - key: WEBHOOK_ID
+        sync: false
+      - key: KING
+        sync: false
