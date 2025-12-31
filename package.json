@@ -33,3 +33,8 @@
   "build": "webpack",
   "start": "node dist/bundle.js"
 }
+"scripts": {
+  "build": "webpack",
+  "start": "node dist/bundle.js",
+  "dev": "nodemon src/index.js"
+}
