@@ -1,0 +1,59 @@
+name: Deploy to Render Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Render Staging Deploy
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Render CLI
+        run: npm install -g render-cli
+
+      - name: Deploy to Render Staging
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
+        run: |
+          render services deploy \
+            --service-id ${{ secrets.RENDER_STAGING_SERVICE_ID }} \
+            --branch staging \
+            --yes
+
+  test:
+    name: Test on Node.js versions and OS
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node_version: ['18.x', '20.x']
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node_version }}
+
+      - name: Install dependencies, build, and test
+        run: |
+          npm install
+          npm run build --if-present
+          npm test
