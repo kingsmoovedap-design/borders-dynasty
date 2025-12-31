@@ -2,39 +2,41 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: path.resolve(__dirname, 'src/index.js'),
+  entry: './src/index.js',
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
     clean: true
   },
-  mode: 'production',
   module: {
     rules: [
       {
         test: /\.js$/,
         exclude: /node_modules/,
         use: 'babel-loader'
+      },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        type: 'asset/resource'
       }
     ]
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'public/index.html',
+      template: './src/index.html',
+      filename: 'index.html',
       inject: 'body'
     })
   ],
   devServer: {
-    static: {
-      directory: path.resolve(__dirname, 'dist')
-    },
+    static: './dist',
     port: 3000,
-    historyApiFallback: true,
-    proxy: {
-      '/royal': 'http://localhost:3000',
-      '/mint': 'http://localhost:3000',
-      '/simulate': 'http://localhost:3000',
-      '/health': 'http://localhost:3000'
-    }
-  }
+    open: true,
+    hot: true
+  },
+  mode: 'development'
 };
