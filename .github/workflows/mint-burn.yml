@@ -9,26 +9,26 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run mint script
         env:
           RPC_URL: ${{ secrets.RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
-        run: npx hardhat run scripts/mint.js --network sepolia
+        run: npx hardhat run scripts/mint.js --network bsc
 
       - name: Run burn script
         env:
           RPC_URL: ${{ secrets.RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           CONTRACT_ADDRESS: ${{ secrets.CONTRACT_ADDRESS }}
-        run: npx hardhat run scripts/burn.js --network sepolia
+        run: npx hardhat run scripts/burn.js --network bsc
