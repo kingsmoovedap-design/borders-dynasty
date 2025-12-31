@@ -4,5 +4,6 @@
   "build": "webpack",
   "test": "node test/api.test.js",
   "test:health": "node test/health.test.js",
+  "lint": "eslint .",
   "hardhat": "hardhat"
 }
