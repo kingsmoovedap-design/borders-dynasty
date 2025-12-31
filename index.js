@@ -44,6 +44,14 @@ app.post("/loads", async (req, res) => {
   }
 });
 require("dotenv").config({ path: "/etc/secrets/.env" });
+require("dotenv").config();
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  const king = process.env.KING || "Unknown Monarch";
+  res.send(`👑 Long live King ${king} of the CodexChain`);
+});
 
 // 🔥 Optional: Burn endpoint
 app.post("/burn", async (req, res) => {
