@@ -1,11 +1,12 @@
-const hre = require("hardhat");
-
 async function main() {
-  const [deployer] = await hre.ethers.getSigners();
-  const BSC = await hre.ethers.getContractFactory("BordersSovereignCoin");
-  const bsc = await BSC.deploy(deployer.address);
-  await bsc.deployed();
-  console.log("Borders Sovereign Coin deployed to:", bsc.address);
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying contract with:", deployer.address);
+
+  const Token = await ethers.getContractFactory("BordersSovereignCoin");
+  const token = await Token.deploy();
+  await token.deployed();
+
+  console.log("Borders Sovereign Coin deployed to:", token.address);
 }
 
 main().catch((error) => {
