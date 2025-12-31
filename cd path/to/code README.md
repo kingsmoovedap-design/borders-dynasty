@@ -1,4 +1,3 @@
-# Borders Dynasty — CodexChain 👑
 
 ![Build](https://github.com/kingsmoovedap-design/borders-dynasty/actions/workflows/deploy-codexchain.yml/badge.svg)
 ![Release](https://img.shields.io/github/v/release/kingsmoovedap-design/borders-dynasty)
@@ -18,11 +17,4 @@
 
 ---
 
-## 🔐 Environment Variables
 
-Create a `.env` file in the root directory based on `.env.example`:
-
-```env
-RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
-PRIVATE_KEY=your_wallet_private_key
-CONTRACT_ADDRESS=0xYourDeployedContractAddress
