@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/index.js', // Adjust if your entry file is different
+  entry: path.resolve(__dirname, 'src/index.js'), // Dynamically resolves the entry file
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
