@@ -43,6 +43,7 @@ app.post("/loads", async (req, res) => {
     res.status(500).json({ error: "Minting failed", details: err.message });
   }
 });
+require("dotenv").config({ path: "/etc/secrets/.env" });
 
 // 🔥 Optional: Burn endpoint
 app.post("/burn", async (req, res) => {
