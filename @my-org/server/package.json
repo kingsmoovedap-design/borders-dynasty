@@ -1,0 +1,10 @@
+{
+  "name": "@my-org/server",
+  "version": "1.0.0",
+  "description": "Server app that uses the CodexChain frontend",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@kingsmoovedap-design/borders-dynasty": "^1.0.0"
+  }
+}
