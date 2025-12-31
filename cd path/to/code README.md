@@ -18,11 +18,14 @@
 
 ---
 
-## 🔐 Environment Variables
 
-Create a `.env` file in the root directory based on `.env.example`:
-
-```env
-RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
-PRIVATE_KEY=your_wallet_private_key
-CONTRACT_ADDRESS=0xYourDeployedContractAddress
+borders-dynasty/
+├── dist/                 # Compiled output (auto-generated)
+├── src/                  # Source code (entry: index.js)
+│   └── index.js
+├── .babelrc              # Babel configuration
+├── .eslintrc.json        # ESLint rules
+├── .prettierrc           # Prettier formatting rules
+├── webpack.config.js     # Webpack bundler config
+├── package.json          # Project metadata and scripts
+└── .github/workflows/    # CI/CD workflows
