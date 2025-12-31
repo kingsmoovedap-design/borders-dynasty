@@ -1,34 +1,29 @@
-# 🏰 Borders Dynasty — Borders Sovereign Coin (BSC)
+# 👑 Borders Sovereign Coin (BSC)
 
-Borders Dynasty is a decentralized logistics protocol powered by **Borders Sovereign Coin (BSC)** — a custom ERC-20 token deployed on the Ethereum Sepolia testnet. This project combines **smart contracts** with a **Node.js + Express API**, enabling minting and burning of tokens tied to real-world logistics events.
-
----
-
-## ⚙️ Tech Stack
-
-- **Solidity** (Smart Contracts)
-- **Hardhat** (Development & Deployment)
-- **Ethers.js** (Blockchain Interaction)
-- **Express.js** (REST API)
-- **Render** (Cloud Deployment)
-- **Infura** (Ethereum RPC Provider)
+Borders Sovereign Coin (BSC) is a tokenized logistics and sovereignty protocol built on Ethereum. It enables minting, burning, and tracking of digital assets representing sovereign cargo, territory, or identity.
 
 ---
 
-## 🚀 Features
+## 🚀 Live Deployment
 
-- 🔨 Mint BSC tokens when a new load is created
-- 🔥 Burn BSC tokens on demand
-- 📜 Fetch token metadata (name, symbol, supply)
-- 
+- **Frontend (GitHub Pages)**: [borders-dynasty dApp](https://kingsmoovedap-design.github.io/borders-dynasty/)
+- **Smart Contract (Sepolia)**: `0xYourContractAddress` *(replace with actual address)*
+- **Alchemy Webhooks**: Real-time tracking of mint/burn events
+- **Backend Webhook Server**: Receives and logs contract events
+- **GitHub Actions**: CI/CD for testing, publishing, and frontend deployment
+
 ---
 
-## 🧪 API Endpoints
+## 🧱 Smart Contract
 
-| Method | Endpoint       | Description                     |
-|--------|----------------|---------------------------------|
-| GET    | `/health`      | Health check                    |
-| POST   | `/loads`       | Mint 1 BSC token                |
-| POST   | `/burn`        | Burn specified BSC amount       |
-| GET    | `/codex-uri`   | Fetch token metadata            |
+- **Name**: `BordersSovereignCoin`
+- **Standard**: ERC-20
+- **Functions**:
+  - `mint(address to, uint256 amount)`
+  - `burn(uint256 amount)`
+  - `balanceOf(address account)`
 
+### 📄 Contract Deployment
+
+```bash
+npx hardhat run scripts/deploy-and-verify.js --network sepolia
