@@ -1,3 +1,7 @@
+- name: Setup Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: 22.x
 {
   "name": "@kingsmoovedap-design/borders-dynasty",
   "version": "1.0.0",
