@@ -1,12 +1,12 @@
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contract with:", deployer.address);
+  console.log('Deploying contract with:', deployer.address);
 
-  const Token = await ethers.getContractFactory("BordersSovereignCoin");
+  const Token = await ethers.getContractFactory('BordersSovereignCoin');
   const token = await Token.deploy();
   await token.deployed();
 
-  console.log("Borders Sovereign Coin deployed to:", token.address);
+  console.log('Borders Sovereign Coin deployed to:', token.address);
 }
 
 main().catch((error) => {

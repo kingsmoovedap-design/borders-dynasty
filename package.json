@@ -63,7 +63,11 @@
     ]
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0",
+    "@openzeppelin/hardhat-upgrades": "^3.9.1",
     "css-loader": "^7.1.2",
+    "dotenv": "^17.2.3",
     "style-loader": "^4.0.0"
   }
 }
