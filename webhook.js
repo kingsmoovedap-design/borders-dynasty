@@ -1,11 +1,22 @@
-const express = require("express");
-const app = express();
-app.use(express.json());
+const crypto = require("crypto");
+
+function verifySignature(req, secret) {
+  const signature = req.headers["x-alchemy-signature"]; // Adjust header name per provider
+  const payload = JSON.stringify(req.body);
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+
+  return signature === expected;
+}
 
 app.post("/webhook", (req, res) => {
-  console.log("📡 Webhook received:", JSON.stringify(req.body, null, 2));
+  if (!verifySignature(req, process.env.WEBHOOK_SECRET)) {
+    console.warn("❌ Invalid webhook signature");
+    return res.sendStatus(401);
+  }
+
+  console.log("📡 Verified webhook received:", JSON.stringify(req.body, null, 2));
   res.sendStatus(200);
 });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Webhook server running on port ${PORT}`));
