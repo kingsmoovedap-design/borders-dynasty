@@ -1,16 +1,4 @@
 
-borders-dynasty/
-├── dist/                 # Compiled output (auto-generated)
-├── src/                  # Source code (entry: index.js)
-│   └── index.js
-├── .babelrc              # Babel configuration
-├── .eslintrc.json        # ESLint rules
-├── .prettierrc           # Prettier formatting rules
-├── webpack.config.js     # Webpack bundler config
-├── package.json          # Project metadata and scripts
-└── .github/workflows/    # CI/CD workflows
-# Borders Dynasty — CodexChain 👑
-
 ![Build](https://github.com/kingsmoovedap-design/borders-dynasty/actions/workflows/deploy-codexchain.yml/badge.svg)
 ![Release](https://img.shields.io/github/v/release/kingsmoovedap-design/borders-dynasty)
 ![License](https://img.shields.io/github/license/kingsmoovedap-design/borders-dynasty)
