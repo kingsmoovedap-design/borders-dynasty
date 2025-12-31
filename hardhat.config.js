@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomicfoundation/hardhat-verify");
 require("dotenv").config();
-
+fs.writeFileSync("deployed.json", JSON.stringify({ address: await contract.getAddress() }, null, 2));
 module.exports = {
   solidity: "0.8.18",
   networks: {
