@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Borders Sovereign Coin</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
+    button { padding: 1rem 2rem; font-size: 1rem; margin: 1rem; }
+    #wallet, #balance { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>👑 Borders Sovereign Coin (BSC)</h1>
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <button onclick="mint()">Mint 1000 BSC</button>
+  <div id="wallet">Wallet: Not connected</div>
+  <div id="balance">Balance: --</div>
+
+  <script>
+    const contractAddress = "0xYourContractAddress"; // Replace with your deployed contract
+    const abi = [
+      "function mint(address to, uint256 amount) public",
+      "function balanceOf(address account) view returns (uint256)"
+    ];
+
+    let signer, contract;
+
+    async function connectWallet() {
+      if (!window.ethereum) return alert("Install MetaMask first!");
+      await ethereum.request({ method: "eth_requestAccounts" });
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      contract = new ethers.Contract(contractAddress, abi, signer);
+
+      const address = await signer.getAddress();
+      document.getElementById("wallet").innerText = `Wallet: ${address}`;
+      getBalance();
+    }
+
+    async function mint() {
+      if (!signer || !contract) return alert("Connect wallet first!");
+      const amount = ethers.utils.parseUnits("1000", 18);
+      const tx = await contract.mint(await signer.getAddress(), amount);
+      alert("Minting... TX: " + tx.hash);
+      await tx.wait();
+      alert("✅ Minted 1000 BSC!");
+      getBalance();
+    }
+
+    async function getBalance() {
+      const address = await signer.getAddress();
+      const balance = await contract.balanceOf(address);
+      document.getElementById("balance").innerText =
+        `Balance: ${ethers.utils.formatUnits(balance, 18)} BSC`;
+    }
+  </script>
+</body>
+</html>
