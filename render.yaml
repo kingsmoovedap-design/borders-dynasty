@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: borders-webhook
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: RPC_URL
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false
+      - key: ETHERSCAN_API_KEY
+        sync: false
+      - key: PORT
+        value: 3000
