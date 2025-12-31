@@ -1,16 +1,27 @@
 {
-  "name": "borders-dynasty",
+  "name": "@kingsmoovedap-design/borders-dynasty",
   "version": "1.0.0",
   "description": "CodexChain frontend",
   "main": "dist/bundle.js",
   "scripts": {
+    "prebuild": "npm run lint && npm test",
     "start": "node dist/bundle.js",
     "dev": "nodemon src/index.js",
     "build": "webpack",
     "test": "node test/api.test.js",
     "test:health": "node test/health.test.js",
     "lint": "eslint .",
-    "hardhat": "hardhat"
+    "hardhat": "hardhat",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kingsmoovedap-design/borders-dynasty.git"
+  },
+  "homepage": "https://github.com/kingsmoovedap-design/borders-dynasty#readme",
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   },
   "devDependencies": {
     "webpack": "^5.91.0",
@@ -26,7 +37,8 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/github": "^9.2.5",
     "@semantic-release/git": "^10.0.1",
-    "html-webpack-plugin": "^5.5.3"
+    "html-webpack-plugin": "^5.5.3",
+    "husky": "^9.0.11"
   },
   "release": {
     "branches": ["main"],
