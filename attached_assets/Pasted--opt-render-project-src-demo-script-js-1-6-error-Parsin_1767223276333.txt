@@ -1,0 +1,88 @@
+/opt/render/project/src/demo-script.js
+  1:6  error  Parsing error: Unexpected token https
+/opt/render/project/src/git add index.js
+  1:5  error  Parsing error: Unexpected token commit
+/opt/render/project/src/hardhat.config.js
+   1:9   error  Strings must use singlequote  quotes
+   2:9   error  Strings must use singlequote  quotes
+   3:9   error  Strings must use singlequote  quotes
+   4:1   error  'fs' is not defined           no-undef
+   4:18  error  Strings must use singlequote  quotes
+   4:67  error  'contract' is not defined     no-undef
+   6:13  error  Strings must use singlequote  quotes
+  17:9   error  Strings must use singlequote  quotes
+  18:9   error  Strings must use singlequote  quotes
+  19:9   error  Strings must use singlequote  quotes
+  22:13  error  Strings must use singlequote  quotes
+/opt/render/project/src/index.js
+   2:13  error  Strings must use singlequote  quotes
+   7:29  error  Strings must use singlequote  quotes
+  10:42  error  Strings must use singlequote  quotes
+  19:19  error  Strings must use singlequote  quotes
+  24:27  error  Strings must use singlequote  quotes
+  25:38  error  Strings must use singlequote  quotes
+  26:12  error  Strings must use singlequote  quotes
+  27:19  error  Strings must use singlequote  quotes
+/opt/render/project/src/scripts/checkBalance.js
+   1:9   error  Strings must use singlequote  quotes
+   2:28  error  Strings must use singlequote  quotes
+   6:47  error  Strings must use singlequote  quotes
+  13:17  error  Strings must use singlequote  quotes
+/opt/render/project/src/scripts/deploy-and-verify.js
+   1:9   error  Strings must use singlequote  quotes
+   2:21  error  Strings must use singlequote  quotes
+   3:20  error  Strings must use singlequote  quotes
+   6:68  error  Strings must use singlequote  quotes
+   9:15  error  Strings must use singlequote  quotes
+  11:15  error  Strings must use singlequote  quotes
+  13:16  error  Strings must use singlequote  quotes
+  15:15  error  Strings must use singlequote  quotes
+  17:15  error  Strings must use singlequote  quotes
+  19:15  error  Strings must use singlequote  quotes
+  23:19  error  Strings must use singlequote  quotes
+  27:17  error  Strings must use singlequote  quotes
+  29:19  error  Strings must use singlequote  quotes
+  34:17  error  Strings must use singlequote  quotes
+/opt/render/project/src/scripts/deploy.js
+  2:28  error  'ethers' is not defined       no-undef
+  3:15  error  Strings must use singlequote  quotes
+  5:23  error  'ethers' is not defined       no-undef
+  5:49  error  Strings must use singlequote  quotes
+  9:15  error  Strings must use singlequote  quotes
+/opt/render/project/src/scripts/mint.js
+   1:9   error  Strings must use singlequote  quotes
+   2:28  error  Strings must use singlequote  quotes
+   8:44  error  Strings must use singlequote  quotes
+  11:42  error  Strings must use singlequote  quotes
+  14:15  error  Strings must use singlequote  quotes
+/opt/render/project/src/src/index.js
+  3:13  error  Strings must use singlequote  quotes
+  7:15  error  Strings must use singlequote  quotes
+/opt/render/project/src/test/api.test.js
+   2:24  error  Strings must use singlequote  quotes
+   3:26  error  Strings must use singlequote  quotes
+   6:15  error  Strings must use singlequote  quotes
+   8:11  error  Strings must use singlequote  quotes
+   9:13  error  Strings must use singlequote  quotes
+  13:16  error  Strings must use singlequote  quotes
+  14:12  error  Strings must use singlequote  quotes
+  15:12  error  Strings must use singlequote  quotes
+  18:34  error  Strings must use singlequote  quotes
+  19:21  error  Strings must use singlequote  quotes
+  21:23  error  Strings must use singlequote  quotes
+  26:10  error  Strings must use singlequote  quotes
+  27:19  error  Strings must use singlequote  quotes
+/opt/render/project/src/webhook.js
+   1:24  error  Strings must use singlequote  quotes
+   4:33  error  Strings must use singlequote  quotes
+   7:17  error  Strings must use singlequote  quotes
+   9:13  error  Strings must use singlequote  quotes
+  14:1   error  'app' is not defined          no-undef
+  14:10  error  Strings must use singlequote  quotes
+  16:18  error  Strings must use singlequote  quotes
+  20:15  error  Strings must use singlequote  quotes
+✖ 78 problems (78 errors, 0 warnings)
+  71 errors and 0 warnings potentially fixable with the `--fix` option.
+==> Build failed 😞
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+Need better ways to

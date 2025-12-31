@@ -1,0 +1,96 @@
+⚒️ Phase 1: Base Contract — Borders Sovereign Coin (BSC)
+solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract BordersSovereignCoin is ERC20, Ownable {
+    event SovereignMint(address indexed to, uint256 amount);
+    event SovereignBurn(address indexed from, uint256 amount);
+
+    constructor(address initialOwner) ERC20("Borders Sovereign Coin", "BSC") {
+        _transferOwnership(initialOwner);
+    }
+
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+        emit SovereignMint(to, amount);
+    }
+
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+        emit SovereignBurn(msg.sender, amount);
+    }
+}
+🔁 Phase 2: Upgrade 1 — Pausable Token
+Add the ability to pause all transfers in emergencies.
+
+solidity
+import "@openzeppelin/contracts/security/Pausable.sol";
+
+contract BordersSovereignCoinV2 is BordersSovereignCoin, Pausable {
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount)
+        internal override(ERC20)
+    {
+        super._beforeTokenTransfer(from, to, amount);
+        require(!paused(), "BSC: token transfer while paused");
+    }
+}
+🧠 Phase 3: Upgrade 2 — Role-Based Minting (Minters)
+Allow multiple trusted addresses to mint tokens.
+
+solidity
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
+contract BordersSovereignCoinV3 is BordersSovereignCoinV2, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
+    constructor() {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function mint(address to, uint256 amount) public override onlyRole(MINTER_ROLE) {
+        _mint(to, amount);
+        emit SovereignMint(to, amount);
+    }
+}
+🧬 Phase 4: Upgrade 3 — On-Chain Metadata & Supply Cap
+Add a maximum supply and on-chain metadata.
+
+solidity
+uint256 public immutable maxSupply = 1_000_000 * 10 ** decimals();
+
+function mint(address to, uint256 amount) public override onlyRole(MINTER_ROLE) {
+    require(totalSupply() + amount <= maxSupply, "BSC: cap exceeded");
+    super.mint(to, amount);
+}
+🛡️ Phase 5: Upgrade 4 — Permit (EIP-2612)
+Enable gasless approvals via signatures.
+
+solidity
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+
+contract BordersSovereignCoinV4 is BordersSovereignCoinV3, ERC20Permit {
+    constructor() ERC20Permit("Borders Sovereign Coin") {}
+}
+🧱 Upgrade Strategy
+To make these upgrades seamless:
+
+Use OpenZeppelin’s Transparent Proxy pattern via @openzeppelin/hardhat-upgrades
+
+Deploy initial version with deployProxy
+
+Upgrade using upgradeProxy with new logic contracts
+
+Would you like me to generate the Hardhat deployment scripts and upgrade scripts for each version? Or scaffold a full contracts/ folder with these versions and a deploy-upgrade.js script? The CodexChain shall evolve with elegance and power.
+
