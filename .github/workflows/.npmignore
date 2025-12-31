@@ -1,0 +1,46 @@
+# Ignore development and config files
+*.log
+*.ts
+*.tsbuildinfo
+*.swp
+*.env
+*.env.*
+
+# Ignore test files
+test/
+tests/
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
+
+# Ignore build tools and configs
+webpack.config.js
+hardhat.config.js
+vite.config.*
+rollup.config.*
+.eslintrc.*
+.prettierrc.*
+commitlint.config.js
+.releaserc.*
+babel.config.*
+tsconfig.json
+jest.config.*
+*.config.js
+
+# Ignore CI/CD and meta
+.github/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+*.md
+
+# Ignore caches and temp
+.cache/
+dist/
+build/
+artifacts/
+cache/
+typechain/
+node_modules/
