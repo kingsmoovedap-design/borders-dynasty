@@ -38,6 +38,17 @@ jobs:
           overwrite: true
           include-hidden-files: true
 
+      - name: Setup Java JDK
+        uses: actions/setup-java@v5.1.0
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Download Previous Artifact (if needed)
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: codexchain-release
+
       - name: Close Stale Issues
         uses: actions/stale@v10.1.1
         with:
@@ -45,3 +56,10 @@ jobs:
           days-before-stale: 30
           days-before-close: 7
           stale-pr-message: "This PR has been marked as stale and will be closed soon if no activity occurs."
+
+      - name: ServiceNow CI/CD Rollback Plugin
+        uses: ServiceNow/sncicd-plugin-rollback@2.0.0
+        with:
+          instance-url: ${{ secrets.SERVICENOW_INSTANCE_URL }}
+          username: ${{ secrets.SERVICENOW_USERNAME }}
+          password: ${{ secrets.SERVICENOW_PASSWORD }}
