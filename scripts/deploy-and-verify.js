@@ -1,5 +1,6 @@
 require("dotenv").config();
 const hre = require("hardhat");
+const fs = require("fs");
 
 async function main() {
   const BordersSovereignCoin = await hre.ethers.getContractFactory("BordersSovereignCoin");
@@ -9,15 +10,22 @@ async function main() {
   await contract.deployed();
   console.log("✅ Contract deployed to:", contract.address);
 
+  // Save address to deployed.json
+  const path = "./deployed.json";
+  const deployments = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
+  deployments["sepolia"] = { BordersSovereignCoin: contract.address };
+  fs.writeFileSync(path, JSON.stringify(deployments, null, 2));
+  console.log("📦 Address saved to deployed.json");
+
   // Wait for Etherscan to index the contract
   console.log("⏳ Waiting for Etherscan to index...");
-  await new Promise((resolve) => setTimeout(resolve, 60000)); // wait 60 seconds
+  await new Promise((resolve) => setTimeout(resolve, 60000));
 
   // Verify the contract
   try {
     await hre.run("verify:verify", {
       address: contract.address,
-      constructorArguments: [], // Add args here if your constructor takes any
+      constructorArguments: [],
     });
     console.log("🔍 Contract verified on Etherscan!");
   } catch (err) {
