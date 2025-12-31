@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "node test/api.test.js",
     "hardhat": "hardhat"
   },
   "keywords": [
@@ -28,10 +28,4 @@
     "hardhat": "^2.22.1",
     "nodemon": "^3.1.0"
   }
-}
-"scripts": {
-  "start": "node index.js",
-  "dev": "nodemon index.js",
-  "test": "node test/api.test.js",
-  "hardhat": "hardhat"
 }
