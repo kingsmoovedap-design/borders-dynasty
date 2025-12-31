@@ -25,7 +25,8 @@
     "@semantic-release/release-notes-generator": "^12.1.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/github": "^9.2.5",
-    "@semantic-release/git": "^10.0.1"
+    "@semantic-release/git": "^10.0.1",
+    "html-webpack-plugin": "^5.5.3"
   },
   "release": {
     "branches": ["main"],
