@@ -34,8 +34,10 @@ module.exports = {
   ],
   devServer: {
     static: './dist',
-    port: 3000,
-    open: true,
+    port: 5000,
+    host: '0.0.0.0',
+    allowedHosts: 'all',
+    open: false,
     hot: true
   },
   mode: 'development'
