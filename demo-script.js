@@ -1,1 +1,0 @@
-curl https://eth-mainnet.g.alchemy.com/v2/krvHA6zVlTwirCldaigsx -X POST -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"debug_traceTransaction","params":["0x9e63085271890a141297039b3b711913699f1ee4db1acb667ad7ce304772036b",{"tracer": "callTracer","timeout": "5s"}],"id":0}'
