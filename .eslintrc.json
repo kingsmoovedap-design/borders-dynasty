@@ -10,9 +10,9 @@
     "sourceType": "module"
   },
   "rules": {
-    "no-unused-vars": "warn",
-    "no-console": "off",
+    "quotes": ["error", "single"],
     "semi": ["error", "always"],
-    "quotes": ["error", "single"]
+    "no-unused-vars": "warn",
+    "no-console": "off"
   }
 }
