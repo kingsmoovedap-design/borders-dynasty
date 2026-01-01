@@ -1,4 +1,3 @@
-const fs = require('fs');
 require('@nomicfoundation/hardhat-toolbox');
 require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();

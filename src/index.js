@@ -1,7 +1,5 @@
 import { ethers } from 'ethers';
 
-const BSC_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
-
 async function init() {
   const app = document.getElementById('app');
   app.innerHTML = `
