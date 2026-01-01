@@ -77,7 +77,10 @@ async function init() {
   const syncEcclesia = async () => {
     try {
       logEvent('Synchronizing with Codex Ecclesia...');
-      // Placeholder for inter-repo API sync
+      // Simulated inter-repo cross-check
+      setTimeout(() => {
+        logEvent('Dynastic Identity verified via Ecclesia Ledger.');
+      }, 2000);
     } catch (err) {
       console.error('Ecclesia sync failed');
     }

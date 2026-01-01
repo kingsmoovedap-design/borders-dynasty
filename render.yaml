@@ -28,3 +28,5 @@ services:
         value: "https://codex-ecclesia-public.onrender.com"
       - key: DYNASTY_SHARED_SECRET
         fromSecret: DYNASTY_SHARED_SECRET
+      - key: IDENTITY_CONTRACT_ADDRESS
+        sync: false
