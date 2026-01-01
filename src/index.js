@@ -41,6 +41,16 @@ async function init() {
         </section>
 
         <section class="card" style="grid-column: 1 / -1;">
+          <h2 style="border-bottom: 2px solid #2ecc71; padding-bottom: 10px; color: #2ecc71; margin-top: 0;">🏛️ Sovereign Compliance</h2>
+          <div style="text-align: center; padding: 15px;">
+            <p style="color: #7f8c8d; font-size: 0.9em; margin-bottom: 15px;">QFS-Compliant Architecture Verified</p>
+            <div style="background: #e8f8f5; border-radius: 8px; padding: 10px; border: 1px solid #2ecc71;">
+              <span style="color: #27ae60; font-weight: bold;">[ISO-20022 READY] [GOLD-BACKED SYNC]</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="grid-column: 1 / -1;">
           <h2 style="border-bottom: 2px solid #e67e22; padding-bottom: 10px; color: #e67e22; margin-top: 0;">📊 Alchemy Infrastructure</h2>
           <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; margin-top: 20px;">
             <div><p style="color: #7f8c8d; margin-bottom: 5px;">Latency</p><p id="latency-val" style="font-size: 1.5em; font-weight: bold; color: #e67e22;">-- ms</p></div>
