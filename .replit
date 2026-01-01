@@ -18,6 +18,10 @@ author = "agent"
 task = "workflow.run"
 args = "Monorepo Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Omega Portal"
+
 [[workflows.workflow]]
 name = "Monorepo Server"
 author = "agent"
@@ -29,6 +33,18 @@ outputType = "console"
 task = "shell.exec"
 args = "node server.cjs"
 waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Omega Portal"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/omega && npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[ports]]
 localPort = 3000
@@ -51,3 +67,4 @@ publicDir = "dist"
 
 [userenv.shared]
 SOVEREIGN_WALLET_ADDRESS = "0x...your...address..."
+VITE_OMEGA_ACCESS_CODE = "BordersDynasty2026!"

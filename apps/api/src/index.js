@@ -162,6 +162,11 @@ app.post("/ops/global-launch", async (req, res) => {
   });
 });
 
+app.get("/drivers", (req, res) => {
+  const allDrivers = Array.from(drivers.values());
+  res.json(allDrivers);
+});
+
 app.post("/drivers", async (req, res) => {
   const { driverId, name, homeBase, equipment } = req.body;
   if (!driverId || !name) {
