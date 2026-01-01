@@ -16,3 +16,7 @@ services:
         fromSecret: PRIVATE_KEY
       - key: ETHERSCAN_API_KEY
         fromSecret: ETHERSCAN_API_KEY
+      - key: ALCHEMY_API_KEY
+        fromSecret: ALCHEMY_API_KEY
+      - key: ALCHEMY_APP_ID
+        value: "lm9vdq2okew29efg"
