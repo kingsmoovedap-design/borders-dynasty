@@ -33,7 +33,10 @@ module.exports = {
     })
   ],
   devServer: {
-    static: './dist',
+    static: [
+      { directory: path.join(__dirname, 'dist') },
+      { directory: path.join(__dirname, 'public') }
+    ],
     port: 5000,
     host: '0.0.0.0',
     allowedHosts: 'all',
