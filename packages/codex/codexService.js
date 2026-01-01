@@ -16,6 +16,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "Codex Ecclesia" });
 });
 
+app.get("/codex/health", (req, res) => {
+  res.json({ status: "ok", service: "Codex Ecclesia" });
+});
+
 app.post("/codex/records", (req, res) => {
   const { type, module, actor, data } = req.body;
 

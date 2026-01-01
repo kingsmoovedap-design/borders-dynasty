@@ -1,0 +1,559 @@
+1. Folder layout (Replit project)
+Create these:
+
+text
+.
+├── package.json
+├── index.js                     # root starter
+├── apps/
+│   └── api/
+│       └── index.js             # Logistics + global ops API
+└── packages/
+    ├── codex/
+    │   ├── codexService.js      # Codex Ecclesia mock
+    │   └── codexClient.js       # Client used by API
+    ├── freight-logic/
+    │   └── index.js             # Load creation + mode logic
+    └── ops-config/
+        └── index.js             # Global ops readiness + activation
+2. package.json (root)
+json
+{
+  "name": "borders-dynasty-global-replit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.19.0",
+    "uuid": "^9.0.1"
+  }
+}
+Run:
+
+bash
+npm install
+3. Root starter: index.js
+Starts Codex and the Global Logistics API.
+
+js
+// Start Codex Ecclesia service
+require("./packages/codex/codexService");
+
+// Start Global Logistics API
+require("./apps/api/index");
+4. Codex service: packages/codex/codexService.js
+js
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.json());
+
+const codexRecords = [];
+const anchors = [];
+
+function computeHash(obj) {
+  const str = JSON.stringify(obj);
+  return crypto.createHash("sha256").update(str).digest("hex");
+}
+
+app.get("/codex/health", (req, res) => {
+  res.json({ status: "ok", service: "Codex Ecclesia" });
+});
+
+app.post("/codex/records", (req, res) => {
+  const { type, module, actor, data } = req.body;
+
+  if (!type || !module) {
+    return res.status(400).json({ error: "type and module are required" });
+  }
+
+  const timestamp = new Date().toISOString();
+  const prev = codexRecords[codexRecords.length - 1];
+
+  const record = {
+    id: codexRecords.length + 1,
+    type,
+    module,
+    actor: actor || "system",
+    timestamp,
+    data: data || {},
+    prevHash: prev ? prev.hash : null
+  };
+
+  record.hash = computeHash(record);
+  codexRecords.push(record);
+
+  console.log("[CODEX] New record:", record);
+
+  res.status(201).json(record);
+});
+
+app.get("/codex/records", (req, res) => {
+  res.json(codexRecords);
+});
+
+app.post("/codex/anchors", (req, res) => {
+  if (codexRecords.length === 0) {
+    return res.status(400).json({ error: "No records to anchor" });
+  }
+
+  const rootHash = computeHash(codexRecords);
+  const anchor = {
+    id: anchors.length + 1,
+    rootHash,
+    timestamp: new Date().toISOString()
+    // later: chain, txHash
+  };
+
+  anchors.push(anchor);
+  console.log("[ANCHOR] New anchor:", anchor);
+
+  res.status(201).json(anchor);
+});
+
+app.get("/codex/anchors", (req, res) => {
+  res.json(anchors);
+});
+
+const port = 3001;
+app.listen(port, () => {
+  console.log(`Codex Ecclesia running on port ${port}`);
+});
+5. Codex client: packages/codex/codexClient.js
+js
+const axios = require("axios");
+
+const CODEX_BASE = process.env.CODEX_URL || "http://localhost:3001";
+
+async function codexLog(type, moduleName, data = {}, actor = "system") {
+  try {
+    const url = `${CODEX_BASE}/codex/records`;
+    const res = await axios.post(url, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("[CODEX_LOG_ERROR]", {
+      message: err.message,
+      type,
+      module: moduleName
+    });
+    return null;
+  }
+}
+
+module.exports = { codexLog };
+6. Global ops config (activation flags): packages/ops-config/index.js
+This is where we encode which operations arms are “ready” or “activated”.
+
+Modes: GROUND, AIR, OCEAN, COURIER  
+Regions: e.g. NORTH_AMERICA, EUROPE, ASIA_PACIFIC.
+
+js
+// Initial global ops readiness + activation state
+// Think of this as your "pre-launch" config
+
+const opsState = {
+  modes: {
+    GROUND: { ready: true, active: true },
+    AIR: { ready: true, active: false },
+    OCEAN: { ready: true, active: false },
+    COURIER: { ready: true, active: false }
+  },
+  regions: {
+    NORTH_AMERICA: { ready: true, active: true },
+    EUROPE: { ready: true, active: false },
+    ASIA_PACIFIC: { ready: false, active: false },
+    LATAM: { ready: false, active: false }
+  }
+};
+
+function getOpsStatus() {
+  return opsState;
+}
+
+function activateMode(mode) {
+  if (!opsState.modes[mode]) return false;
+  opsState.modes[mode].active = true;
+  return true;
+}
+
+function deactivateMode(mode) {
+  if (!opsState.modes[mode]) return false;
+  opsState.modes[mode].active = false;
+  return true;
+}
+
+function activateRegion(region) {
+  if (!opsState.regions[region]) return false;
+  if (!opsState.regions[region].ready) return false; // can't activate not-ready region
+  opsState.regions[region].active = true;
+  return true;
+}
+
+module.exports = {
+  getOpsStatus,
+  activateMode,
+  deactivateMode,
+  activateRegion
+};
+7. Freight logic with mode awareness: packages/freight-logic/index.js
+js
+const { v4: uuid } = require("uuid");
+
+const VALID_MODES = ["GROUND", "AIR", "OCEAN", "COURIER"];
+
+class FreightEngine {
+  createLoad(input) {
+    const { shipperId, origin, destination, mode, budgetAmount, region } = input;
+
+    if (!VALID_MODES.includes(mode)) {
+      throw new Error(`Invalid mode: ${mode}`);
+    }
+
+    const now = new Date().toISOString();
+
+    return {
+      id: uuid(),
+      shipperId,
+      origin,
+      destination,
+      mode,
+      region,         // e.g. "NORTH_AMERICA"
+      budgetAmount,
+      status: "CREATED",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  markInTransit(load) {
+    return {
+      ...load,
+      status: "IN_TRANSIT",
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  markDelivered(load) {
+    return {
+      ...load,
+      status: "DELIVERED",
+      updatedAt: new Date().toISOString()
+    };
+  }
+}
+
+module.exports = {
+  FreightEngine,
+  VALID_MODES
+};
+8. Global Logistics API: apps/api/index.js
+This API:
+
+checks if mode + region are active before accepting a load
+
+logs ops activation changes into Codex
+
+lets you simulate a global launch wave
+
+creates & tracks loads across GROUND / AIR / OCEAN / COURIER
+
+js
+const express = require("express");
+const { FreightEngine, VALID_MODES } = require("../../packages/freight-logic");
+const { codexLog } = require("../../packages/codex/codexClient");
+const {
+  getOpsStatus,
+  activateMode,
+  deactivateMode,
+  activateRegion
+} = require("../../packages/ops-config");
+
+const app = express();
+app.use(express.json());
+
+const freightEngine = new FreightEngine();
+const loads = []; // in-memory
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "Borders Dynasty Global Logistics API",
+    modes: VALID_MODES
+  });
+});
+
+// Global ops status: see which modes/regions are ready/active
+app.get("/ops/status", (req, res) => {
+  res.json(getOpsStatus());
+});
+
+// Admin: activate a mode (e.g. AIR, OCEAN, COURIER)
+app.post("/ops/activate-mode", async (req, res) => {
+  const { mode } = req.body;
+  if (!mode) return res.status(400).json({ error: "mode required" });
+
+  const ok = activateMode(mode);
+  if (!ok) return res.status(400).json({ error: "invalid mode" });
+
+  await codexLog("MODE_ACTIVATED", "GLOBAL_OPS", { mode }, "omega");
+
+  res.json({ success: true, mode });
+});
+
+// Admin: deactivate a mode
+app.post("/ops/deactivate-mode", async (req, res) => {
+  const { mode } = req.body;
+  if (!mode) return res.status(400).json({ error: "mode required" });
+
+  const ok = deactivateMode(mode);
+  if (!ok) return res.status(400).json({ error: "invalid mode" });
+
+  await codexLog("MODE_DEACTIVATED", "GLOBAL_OPS", { mode }, "omega");
+
+  res.json({ success: true, mode });
+});
+
+// Admin: activate a region (only if ready)
+app.post("/ops/activate-region", async (req, res) => {
+  const { region } = req.body;
+  if (!region) return res.status(400).json({ error: "region required" });
+
+  const ok = activateRegion(region);
+  if (!ok) {
+    return res.status(400).json({ error: "invalid or not-ready region" });
+  }
+
+  await codexLog("REGION_ACTIVATED", "GLOBAL_OPS", { region }, "omega");
+
+  res.json({ success: true, region });
+});
+
+// Create a global load for any mode/region (only if active)
+app.post("/loads", async (req, res) => {
+  const { shipperId, origin, destination, mode, budgetAmount, region } = req.body;
+
+  if (!shipperId || !origin || !destination || !mode || !budgetAmount || !region) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const ops = getOpsStatus();
+  const modeCfg = ops.modes[mode];
+  const regionCfg = ops.regions[region];
+
+  if (!modeCfg || !modeCfg.active) {
+    return res.status(400).json({ error: `Mode ${mode} not active` });
+  }
+
+  if (!regionCfg || !regionCfg.active) {
+    return res.status(400).json({ error: `Region ${region} not active` });
+  }
+
+  let load;
+  try {
+    load = freightEngine.createLoad({
+      shipperId,
+      origin,
+      destination,
+      mode,
+      budgetAmount,
+      region
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  loads.push(load);
+
+  await codexLog("LOAD_CREATED", "LOGISTICS", {
+    loadId: load.id,
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount,
+    region
+  }, "shipper");
+
+  res.status(201).json(load);
+});
+
+// List all loads
+app.get("/loads", (req, res) => {
+  res.json(loads);
+});
+
+// Mark in transit (simulate pickup / in-flight, cross border, etc.)
+app.post("/loads/:id/in-transit", async (req, res) => {
+  const { id } = req.params;
+  const index = loads.findIndex(l => l.id === id);
+  if (index === -1) return res.status(404).json({ error: "Load not found" });
+
+  const updated = freightEngine.markInTransit(loads[index]);
+  loads[index] = updated;
+
+  await codexLog("LOAD_IN_TRANSIT", "LOGISTICS", {
+    loadId: updated.id,
+    mode: updated.mode,
+    region: updated.region
+  }, "operator");
+
+  res.json(updated);
+});
+
+// Mark delivered
+app.post("/loads/:id/delivered", async (req, res) => {
+  const { id } = req.params;
+  const index = loads.findIndex(l => l.id === id);
+  if (index === -1) return res.status(404).json({ error: "Load not found" });
+
+  const updated = freightEngine.markDelivered(loads[index]);
+  loads[index] = updated;
+
+  await codexLog("LOAD_DELIVERED", "LOGISTICS", {
+    loadId: updated.id,
+    mode: updated.mode,
+    region: updated.region
+  }, "operator");
+
+  res.json(updated);
+});
+
+// Simulate a "global launch wave" – activate modes & regions at once
+app.post("/ops/global-launch", async (req, res) => {
+  const targets = {
+    modes: ["GROUND", "AIR", "OCEAN", "COURIER"],
+    regions: ["NORTH_AMERICA", "EUROPE"]
+  };
+
+  for (const mode of targets.modes) {
+    activateMode(mode);
+    await codexLog("MODE_ACTIVATED", "GLOBAL_OPS", { mode, via: "GLOBAL_LAUNCH" }, "omega");
+  }
+
+  for (const region of targets.regions) {
+    activateRegion(region);
+    await codexLog("REGION_ACTIVATED", "GLOBAL_OPS", { region, via: "GLOBAL_LAUNCH" }, "omega");
+  }
+
+  res.json({
+    message: "Global launch wave triggered",
+    opsStatus: getOpsStatus()
+  });
+});
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Borders Dynasty Global Logistics API running on port ${port}`);
+});
+9. How to run and test in Replit
+Create the files as above.
+
+In Replit shell:
+
+bash
+npm install
+npm start
+Replit gives you a public URL like:
+
+text
+https://borders-dynasty-global.your-user.repl.co
+Internally:
+
+Codex: port 3001 (paths /codex/...)
+
+Logistics: port 3000 (paths /health, /ops/*, /loads)
+
+9.1 Check health
+bash
+curl https://<your-repl>/health
+curl https://<your-repl>/codex/health
+9.2 See ops status
+bash
+curl https://<your-repl>/ops/status
+You’ll see GROUND + NORTH_AMERICA active, others ready but inactive.
+
+9.3 Create a ground load in North America (works)
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-1",
+    "origin": "Los Angeles, CA",
+    "destination": "Phoenix, AZ",
+    "mode": "GROUND",
+    "budgetAmount": 1200,
+    "region": "NORTH_AMERICA"
+  }'
+9.4 Try to create an AIR load before activation (fails)
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-2",
+    "origin": "LAX",
+    "destination": "JFK",
+    "mode": "AIR",
+    "budgetAmount": 5000,
+    "region": "NORTH_AMERICA"
+  }'
+You should get Mode AIR not active.
+
+9.5 Activate AIR globally
+bash
+curl -X POST https://<your-repl>/ops/activate-mode \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "AIR"}'
+9.6 Create an AIR load (now succeeds)
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-3",
+    "origin": "LAX",
+    "destination": "JFK",
+    "mode": "AIR",
+    "budgetAmount": 7000,
+    "region": "NORTH_AMERICA"
+  }'
+9.7 Trigger “global launch wave” (ACTIVATE ALL MODES + EUROPE)
+bash
+curl -X POST https://<your-repl>/ops/global-launch
+9.8 Inspect Codex records (see everything logged)
+bash
+curl https://<your-repl>/codex/records
+You’ll see:
+
+MODE_ACTIVATED / REGION_ACTIVATED events
+
+LOAD_CREATED, LOAD_IN_TRANSIT, LOAD_DELIVERED events
+
+This is your full sample code:
+
+global‑aware freight engine
+
+mode/region activation logic
+
+logistics API
+
+Codex Ecclesia audit
+
+global launch wave simulation
+
+When you’re ready, we can port this into your GitHub repos (borders-dynasty + codex-ecclesia-public) as a real foundation.
