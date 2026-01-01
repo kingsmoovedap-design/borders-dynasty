@@ -18,6 +18,11 @@ async function init() {
       <header style="text-align: center; margin-bottom: 30px;">
         <h1 style="color: #2c3e50; font-size: 2.5em; margin-bottom: 10px;">🛡️ Borders Dynasty</h1>
         <p style="color: #7f8c8d;">Sovereign Control & Network Integrity Dashboard</p>
+        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+          <span style="background: #27ae60; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8em;">LIVE ON SEPOLIA</span>
+          <span style="background: #3498db; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8em;">CONTRACT VERIFIED</span>
+          <span style="background: #9b59b6; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8em;">ECCLESIA SYNCED</span>
+        </div>
       </header>
 
       <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
@@ -56,18 +61,37 @@ async function init() {
         <section class="card" style="grid-column: 1 / -1;">
           <h2 style="border-bottom: 2px solid #34495e; padding-bottom: 10px; color: #34495e; margin-top: 0;">📢 Dynastic Public Notices</h2>
           <div id="public-notices" style="max-height: 150px; overflow-y: auto; background: #ebf2f8; padding: 15px; border-radius: 8px; border-left: 5px solid #34495e;">
-            <p style="color: #34495e; font-weight: bold; margin-bottom: 5px;">[GLOBAL NOTICE] ECCLESIA NATION HANDSHAKE ACTIVE</p>
-            <p style="color: #7f8c8d; font-size: 0.85em;">The Borders Dynasty has officially synchronized with the Codex Ecclesia Sovereign Nation ledger. All citizens and assets are now recognized cross-repository.</p>
+            <p style="color: #34495e; font-weight: bold; margin-bottom: 5px;">[GLOBAL NOTICE] BORDERS SOVEREIGN COIN DEPLOYED</p>
+            <p style="color: #7f8c8d; font-size: 0.85em; margin-bottom: 10px;">BSC is now live on Sepolia at 0x12efC9a5D115AE7833c9a6D79f1B3BA18Cde817c. Full verification complete.</p>
+            <p style="color: #34495e; font-weight: bold; margin-bottom: 5px;">[ECCLESIA SYNC] NATION HANDSHAKE ACTIVE</p>
+            <p style="color: #7f8c8d; font-size: 0.85em; margin-bottom: 10px;">Cross-repository governance synchronized with Codex Ecclesia Sovereign Nation ledger.</p>
+            <p style="color: #34495e; font-weight: bold; margin-bottom: 5px;">[IDENTITY] DYNASTIC SBT REGISTRY ONLINE</p>
+            <p style="color: #7f8c8d; font-size: 0.85em;">Soulbound Token system for royal titles and citizen recognition is now operational.</p>
           </div>
         </section>
 
         <section class="card" style="grid-column: 1 / -1;">
-          <h2 style="border-bottom: 2px solid #2ecc71; padding-bottom: 10px; color: #2ecc71; margin-top: 0;">🏛️ Sovereign Compliance</h2>
-          <div style="text-align: center; padding: 15px;">
-            <p style="color: #7f8c8d; font-size: 0.9em; margin-bottom: 15px;">QFS-Compliant Architecture Verified</p>
-            <div style="background: #e8f8f5; border-radius: 8px; padding: 10px; border: 1px solid #2ecc71;">
-              <span style="color: #27ae60; font-weight: bold;">[ISO-20022 READY] [GOLD-BACKED SYNC]</span>
+          <h2 style="border-bottom: 2px solid #2ecc71; padding-bottom: 10px; color: #2ecc71; margin-top: 0;">🏛️ Sovereign Compliance & Deployment</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 15px;">
+            <div style="background: #e8f8f5; border-radius: 8px; padding: 15px; text-align: center;">
+              <p style="color: #7f8c8d; font-size: 0.8em; margin-bottom: 5px;">Contract Status</p>
+              <p style="color: #27ae60; font-weight: bold; font-size: 1.1em;">DEPLOYED & VERIFIED</p>
             </div>
+            <div style="background: #ebf5fb; border-radius: 8px; padding: 15px; text-align: center;">
+              <p style="color: #7f8c8d; font-size: 0.8em; margin-bottom: 5px;">Network</p>
+              <p style="color: #3498db; font-weight: bold; font-size: 1.1em;">SEPOLIA TESTNET</p>
+            </div>
+            <div style="background: #fef9e7; border-radius: 8px; padding: 15px; text-align: center;">
+              <p style="color: #7f8c8d; font-size: 0.8em; margin-bottom: 5px;">Compliance</p>
+              <p style="color: #f39c12; font-weight: bold; font-size: 1.1em;">ISO-20022 | QFS</p>
+            </div>
+            <div style="background: #f5eef8; border-radius: 8px; padding: 15px; text-align: center;">
+              <p style="color: #7f8c8d; font-size: 0.8em; margin-bottom: 5px;">Cross-Repo</p>
+              <p style="color: #9b59b6; font-weight: bold; font-size: 1.1em;">ECCLESIA LINKED</p>
+            </div>
+          </div>
+          <div style="text-align: center; margin-top: 10px;">
+            <a href="https://sepolia.etherscan.io/address/0x12efC9a5D115AE7833c9a6D79f1B3BA18Cde817c" target="_blank" style="color: #3498db; font-size: 0.85em;">View Contract on Etherscan</a>
           </div>
         </section>
 
