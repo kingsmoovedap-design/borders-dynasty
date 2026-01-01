@@ -13,7 +13,7 @@
     "build": "webpack",
     "test": "node test/api.test.js",
     "test:health": "node test/health.test.js",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .js --ignore-pattern dist/",
     "hardhat": "hardhat",
     "prepare": "husky install"
   },
