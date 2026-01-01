@@ -82,6 +82,11 @@ const { SingleOperatorPortal, OPERATOR_MODES, AI_ACTIONS } = require("../../../p
 const securityLayer = require("../../../packages/security-layer/index.cjs");
 const logisticsModes = require("../../../packages/logistics-modes/index.cjs");
 const tokenTrading = require("../../../packages/token-trading/index.cjs");
+const contractCapture = require("../../../packages/ai-contract-capture/index.cjs");
+const knowledgeCorpus = require("../../../packages/knowledge-corpus/index.cjs");
+const aiDispatchBrain = require("../../../packages/ai-dispatch-brain/index.cjs");
+const enhancedLoadboard = require("../../../packages/enhanced-loadboard/index.cjs");
+const crossChain = require("../../../packages/cross-chain-evolution/index.cjs");
 
 const governanceClient = new GovernanceClient();
 const operatorPortal = new SingleOperatorPortal();
@@ -1726,6 +1731,273 @@ app.post("/security/generate-api-key", authMiddleware('*'), (req, res) => {
     message: "Full key returned once - store securely",
     key: apiKeyResult.key
   });
+});
+
+app.get("/capture/loadboards", (req, res) => {
+  res.json(contractCapture.getExternalLoadboards());
+});
+
+app.post("/capture/scan", authMiddleware(), async (req, res) => {
+  const filters = req.body.filters || {};
+  const results = await contractCapture.scanExternalLoadboards(filters);
+  res.json(results);
+});
+
+app.post("/capture/score", (req, res) => {
+  const { contract, capabilities } = req.body;
+  if (!contract) return res.status(400).json({ error: "contract required" });
+  res.json(contractCapture.scoreContract(contract, capabilities || {}));
+});
+
+app.post("/capture/capture", authMiddleware(), async (req, res) => {
+  const { contract, score } = req.body;
+  if (!contract || !score) return res.status(400).json({ error: "contract and score required" });
+  
+  const result = contractCapture.captureContract(contract, score);
+  if (result.success) {
+    await codexLog("CONTRACT_CAPTURED", "AI_CAPTURE", {
+      contractId: contract.id,
+      source: contract.source,
+      score: score.totalScore
+    }, "contract-capture");
+  }
+  res.json(result);
+});
+
+app.post("/capture/convert/:contractId", authMiddleware(), async (req, res) => {
+  const overrides = req.body.overrides || {};
+  const result = contractCapture.convertToDynastyLoad(req.params.contractId, overrides);
+  
+  if (result.success) {
+    await codexLog("CONTRACT_CONVERTED", "AI_CAPTURE", {
+      contractId: req.params.contractId,
+      dynastyLoadId: result.load.id
+    }, "contract-capture");
+  }
+  res.json(result);
+});
+
+app.get("/capture/captured", (req, res) => {
+  const filters = {
+    status: req.query.status,
+    minScore: req.query.minScore ? parseFloat(req.query.minScore) : undefined,
+    source: req.query.source,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(contractCapture.getCapturedContracts(filters));
+});
+
+app.get("/capture/qualified", (req, res) => {
+  const minScore = req.query.minScore ? parseFloat(req.query.minScore) : 60;
+  res.json(contractCapture.getQualifiedContracts(minScore));
+});
+
+app.get("/capture/stats", (req, res) => {
+  res.json(contractCapture.getCaptureStats());
+});
+
+app.get("/knowledge/domains", (req, res) => {
+  res.json(knowledgeCorpus.getDomains());
+});
+
+app.get("/knowledge/domains/:domainId", (req, res) => {
+  const domain = knowledgeCorpus.getDomain(req.params.domainId);
+  if (!domain) return res.status(404).json({ error: "Domain not found" });
+  res.json(domain);
+});
+
+app.get("/knowledge/search", (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.status(400).json({ error: "query parameter q required" });
+  res.json(knowledgeCorpus.searchKnowledge(query));
+});
+
+app.post("/knowledge/query", (req, res) => {
+  const { query } = req.body;
+  if (!query) return res.status(400).json({ error: "query required" });
+  res.json(knowledgeCorpus.processKnowledgeQuery(query));
+});
+
+app.get("/knowledge/stats", (req, res) => {
+  res.json(knowledgeCorpus.getKnowledgeStats());
+});
+
+app.get("/brain/model", (req, res) => {
+  res.json(aiDispatchBrain.getScoringModel());
+});
+
+app.get("/brain/fallbacks", (req, res) => {
+  res.json(aiDispatchBrain.getFallbackStrategies());
+});
+
+app.post("/brain/profile", authMiddleware(), (req, res) => {
+  const { driverId, data } = req.body;
+  if (!driverId) return res.status(400).json({ error: "driverId required" });
+  res.json(aiDispatchBrain.initializeDriverProfile(driverId, data || {}));
+});
+
+app.get("/brain/profile/:driverId", (req, res) => {
+  const profile = aiDispatchBrain.getDriverProfile(req.params.driverId);
+  if (!profile) return res.status(404).json({ error: "Profile not found" });
+  res.json(profile);
+});
+
+app.put("/brain/profile/:driverId", authMiddleware(), (req, res) => {
+  const updates = req.body;
+  const profile = aiDispatchBrain.updateDriverProfile(req.params.driverId, updates);
+  if (!profile) return res.status(404).json({ error: "Profile not found" });
+  res.json(profile);
+});
+
+app.post("/brain/score", (req, res) => {
+  const { driver, load } = req.body;
+  if (!driver || !load) return res.status(400).json({ error: "driver and load required" });
+  res.json(aiDispatchBrain.scoreDriverForLoad(driver, load));
+});
+
+app.post("/brain/predict-acceptance", (req, res) => {
+  const { driver, load, rate } = req.body;
+  if (!driver || !load) return res.status(400).json({ error: "driver and load required" });
+  res.json(aiDispatchBrain.predictAcceptance(driver, load, rate || load.budgetAmount));
+});
+
+app.post("/brain/suggestions", (req, res) => {
+  const { load, drivers, options } = req.body;
+  if (!load || !drivers) return res.status(400).json({ error: "load and drivers required" });
+  res.json(aiDispatchBrain.generateDispatchSuggestions(load, drivers, options || {}));
+});
+
+app.post("/brain/outcome", authMiddleware(), async (req, res) => {
+  const { loadId, driverId, outcome } = req.body;
+  if (!loadId || !driverId || !outcome) return res.status(400).json({ error: "loadId, driverId, and outcome required" });
+  
+  const record = aiDispatchBrain.recordDispatchOutcome(loadId, driverId, outcome);
+  await codexLog("DISPATCH_OUTCOME", "AI_DISPATCH", { loadId, driverId, outcome }, "dispatch-brain");
+  res.json(record);
+});
+
+app.get("/brain/analytics", (req, res) => {
+  const filters = {
+    startDate: req.query.startDate,
+    endDate: req.query.endDate
+  };
+  res.json(aiDispatchBrain.getDispatchAnalytics(filters));
+});
+
+app.get("/loadboard/views", (req, res) => {
+  res.json(enhancedLoadboard.getLoadboardViews());
+});
+
+app.get("/loadboard/statuses", (req, res) => {
+  res.json(enhancedLoadboard.getLoadStatuses());
+});
+
+app.post("/loadboard/post", authMiddleware(), async (req, res) => {
+  const { loadData, shipperId } = req.body;
+  if (!loadData) return res.status(400).json({ error: "loadData required" });
+  
+  const result = enhancedLoadboard.postLoad(loadData, shipperId || req.user?.id);
+  if (result.success) {
+    await codexLog("LOAD_POSTED", "LOADBOARD", { loadId: result.load.id, shipperId }, "loadboard");
+  }
+  res.json(result);
+});
+
+app.get("/loadboard/:view", (req, res) => {
+  const view = req.params.view.toUpperCase();
+  const userId = req.query.userId;
+  const filters = {
+    status: req.query.status,
+    mode: req.query.mode,
+    region: req.query.region,
+    limit: req.query.limit ? parseInt(req.query.limit) : 50
+  };
+  res.json(enhancedLoadboard.getLoadsForView(view, userId, filters));
+});
+
+app.post("/loadboard/assign", authMiddleware(), async (req, res) => {
+  const { loadId, driverId } = req.body;
+  if (!loadId || !driverId) return res.status(400).json({ error: "loadId and driverId required" });
+  
+  const result = enhancedLoadboard.assignLoad(loadId, driverId, req.user?.id || "system");
+  if (result.success) {
+    await codexLog("LOAD_ASSIGNED", "LOADBOARD", { loadId, driverId }, "loadboard");
+  }
+  res.json(result);
+});
+
+app.put("/loadboard/status/:loadId", authMiddleware(), async (req, res) => {
+  const { status, metadata } = req.body;
+  if (!status) return res.status(400).json({ error: "status required" });
+  
+  const result = enhancedLoadboard.updateLoadStatus(req.params.loadId, status, metadata || {});
+  if (result.success) {
+    await codexLog("LOAD_STATUS_UPDATED", "LOADBOARD", { loadId: req.params.loadId, status }, "loadboard");
+  }
+  res.json(result);
+});
+
+app.get("/loadboard/capacity", (req, res) => {
+  res.json(enhancedLoadboard.getCapacityOverview(req.query.region, req.query.mode));
+});
+
+app.get("/loadboard/revenue", (req, res) => {
+  const filters = { period: req.query.period };
+  res.json(enhancedLoadboard.getRevenueAnalytics(filters));
+});
+
+app.get("/loadboard/lanes", (req, res) => {
+  res.json(enhancedLoadboard.getLaneAnalytics());
+});
+
+app.get("/loadboard/penetration", (req, res) => {
+  res.json(enhancedLoadboard.getMarketPenetration());
+});
+
+app.get("/crosschain/chains", (req, res) => {
+  res.json(crossChain.getChains());
+});
+
+app.get("/crosschain/active", (req, res) => {
+  res.json(crossChain.getActiveChains());
+});
+
+app.get("/crosschain/planned", (req, res) => {
+  res.json(crossChain.getPlannedChains());
+});
+
+app.get("/crosschain/dex", (req, res) => {
+  res.json(crossChain.getDEXIntegrations());
+});
+
+app.get("/crosschain/phases", (req, res) => {
+  res.json(crossChain.getEvolutionPhases());
+});
+
+app.get("/crosschain/progress", (req, res) => {
+  res.json(crossChain.getPhaseProgress());
+});
+
+app.get("/crosschain/staking", (req, res) => {
+  res.json(crossChain.getStakingTiers());
+});
+
+app.post("/crosschain/staking/calculate", (req, res) => {
+  const { amount, tier, daysStaked } = req.body;
+  if (!amount || !tier) return res.status(400).json({ error: "amount and tier required" });
+  res.json(crossChain.calculateStakingRewards(amount, tier, daysStaked || 30));
+});
+
+app.get("/crosschain/bridge", (req, res) => {
+  res.json(crossChain.getBridgeStatus());
+});
+
+app.get("/crosschain/tokenomics", (req, res) => {
+  res.json(crossChain.getTokenomics());
+});
+
+app.get("/crosschain/roadmap", (req, res) => {
+  res.json(crossChain.getCrossChainRoadmap());
 });
 
 const port = process.env.API_PORT || 3000;

@@ -59,3 +59,64 @@ The platform is built as a monorepo containing multiple services and packages.
 - **Webpack:** Frontend asset bundling.
 - **Babel:** JavaScript transpilation.
 - **Render.com:** Automated deployment platform.
+
+## New Packages (AI-Powered Logistics OS)
+- `packages/ai-contract-capture/` - AI Contract Capture Engine for external loadboard scanning
+- `packages/knowledge-corpus/` - Knowledge Corpus (Law, Commerce, Logistics, Freight domains)
+- `packages/ai-dispatch-brain/` - AI Dispatch Brain with multi-factor scoring and predictions
+- `packages/enhanced-loadboard/` - Enhanced Loadboard with 4 views (Shipper, Driver, Ops, Omega)
+- `packages/cross-chain-evolution/` - Cross-Chain Token Evolution framework
+
+## AI Contract Capture API Endpoints
+- `GET /capture/loadboards` - List external loadboard integrations (DAT, Truckstop, etc.)
+- `POST /capture/scan` - Scan external loadboards for contracts (auth required)
+- `POST /capture/score` - Score a contract for Dynasty fit
+- `POST /capture/capture` - Capture a qualified contract (auth required)
+- `POST /capture/convert/:contractId` - Convert captured contract to Dynasty load (auth required)
+- `GET /capture/captured` - List captured contracts with filters
+- `GET /capture/qualified` - Get contracts ready for conversion
+- `GET /capture/stats` - Contract capture statistics
+
+## Knowledge Corpus API Endpoints
+- `GET /knowledge/domains` - List all knowledge domains (Law, Commerce, Logistics, Freight)
+- `GET /knowledge/domains/:domainId` - Get domain with categories and topics
+- `GET /knowledge/search?q=query` - Search knowledge corpus
+- `POST /knowledge/query` - Process knowledge query with AI guidance
+- `GET /knowledge/stats` - Knowledge corpus statistics
+
+## AI Dispatch Brain API Endpoints
+- `GET /brain/model` - Get dispatch scoring model and weights
+- `GET /brain/fallbacks` - Get fallback strategies for dispatch
+- `POST /brain/profile` - Initialize driver profile (auth required)
+- `GET /brain/profile/:driverId` - Get driver profile
+- `PUT /brain/profile/:driverId` - Update driver profile (auth required)
+- `POST /brain/score` - Score driver for load
+- `POST /brain/predict-acceptance` - Predict driver acceptance probability
+- `POST /brain/suggestions` - Generate dispatch suggestions with predictions
+- `POST /brain/outcome` - Record dispatch outcome for learning (auth required)
+- `GET /brain/analytics` - Get dispatch analytics
+
+## Enhanced Loadboard API Endpoints
+- `GET /loadboard/views` - Get available views (Shipper, Driver, Ops, Omega)
+- `GET /loadboard/statuses` - Get load status definitions
+- `POST /loadboard/post` - Post new load with AI pricing (auth required)
+- `GET /loadboard/:view` - Get loads for specific view (shipper, driver, ops, omega)
+- `POST /loadboard/assign` - Assign load to driver (auth required)
+- `PUT /loadboard/status/:loadId` - Update load status (auth required)
+- `GET /loadboard/capacity` - Get capacity overview with gaps
+- `GET /loadboard/revenue` - Get revenue analytics
+- `GET /loadboard/lanes` - Get lane analytics
+- `GET /loadboard/penetration` - Get market penetration metrics
+
+## Cross-Chain Evolution API Endpoints
+- `GET /crosschain/chains` - List all supported chains
+- `GET /crosschain/active` - Get active chains (currently Sepolia)
+- `GET /crosschain/planned` - Get planned chains (Polygon, Arbitrum, Base, etc.)
+- `GET /crosschain/dex` - Get DEX integrations (Uniswap, SushiSwap, etc.)
+- `GET /crosschain/phases` - Get evolution phases
+- `GET /crosschain/progress` - Get overall progress
+- `GET /crosschain/staking` - Get staking tiers and APY
+- `POST /crosschain/staking/calculate` - Calculate staking rewards
+- `GET /crosschain/bridge` - Get bridge status and planned chains
+- `GET /crosschain/tokenomics` - Get BSC tokenomics
+- `GET /crosschain/roadmap` - Get complete cross-chain roadmap
