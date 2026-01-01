@@ -80,6 +80,9 @@ Regions: NORTH_AMERICA, EUROPE, ASIA_PACIFIC, LATAM
 - `POST /dispatch/assign` - Assign driver to load (body: { loadId, driverId, method })
 - `GET /dispatch/history` - View all dispatch records
 - `POST /contract/accept` - Accept load contract (body: { loadId, driverId })
+- `GET /contracts` - List all accepted contracts
+- `GET /contracts/:id` - Get contract by ID
+- `GET /contracts/load/:loadId` - Get contract for a specific load
 
 ## Logistics API Endpoints
 - `GET /health` - Health check with supported modes
