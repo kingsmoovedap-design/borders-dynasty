@@ -76,6 +76,17 @@ async function init() {
     eventLog.prepend(entry);
   };
 
+  const syncEcclesia = async () => {
+    try {
+      logEvent('Synchronizing with Codex Ecclesia...');
+      // Placeholder for inter-repo API sync
+    } catch (err) {
+      console.error('Ecclesia sync failed');
+    }
+  };
+
+  syncEcclesia();
+
   setInterval(() => {
     const lat = Math.floor(Math.random() * 30) + 15;
     latencyVal.innerText = `${lat} ms`;
