@@ -1,0 +1,326 @@
+. Exact folder structure for borders-dynasty
+In your borders-dynasty repo, aim for this structure:
+
+text
+borders-dynasty/
+├── apps/
+│   ├── api/                     # Logistics + treasury + credit API
+│   │   ├── src/
+│   │   │   ├── index.js         # Entry point (for now JS; later TS)
+│   │   │   ├── routes/
+│   │   │   │   └── loads.routes.js
+│   │   │   ├── controllers/
+│   │   │   │   └── loads.controller.js
+│   │   │   ├── services/
+│   │   │   │   └── loads.service.js
+│   │   │   └── codex/
+│   │   │       └── codexClient.js
+│   │   └── package.json
+│   ├── operator-console/        # (later) React dashboard
+│   └── driver-app/              # (later) React Native app
+│
+├── packages/
+│   ├── codex-client/            # Reusable Codex client package
+│   │   ├── index.js
+│   │   ├── package.json
+│   │   └── README.md
+│   ├── freight-logic/           # (later) core freight logic
+│   ├── treasury-crypto/         # (later)
+│   ├── devine-credit/           # (later)
+│   └── shared-types/            # (later)
+│
+└── Dev_In_A_Box/                # Your design + specs
+You can start with just apps/api + packages/codex-client, then grow.
+
+2. Codex Client package (ready to paste)
+This is the reusable client to talk to codex-ecclesia-public.
+
+2.1 packages/codex-client/package.json
+json
+{
+  "name": "@borders/codex-client",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}
+2.2 packages/codex-client/index.js
+js
+const axios = require("axios");
+
+// CODEX_URL should point to your deployed codex-ecclesia service
+const CODEX_URL = process.env.CODEX_URL || "http://localhost:3001";
+
+/**
+ * Log a record to Codex Ecclesia
+ * @param {string} type - e.g. "LOAD_CREATED"
+ * @param {string} moduleName - e.g. "LOGISTICS"
+ * @param {object} data - payload
+ * @param {string} actor - e.g. "omega", "system"
+ */
+async function codexLog(type, moduleName, data = {}, actor = "system") {
+  try {
+    const res = await axios.post(`${CODEX_URL}/codex/records`, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("[CODEX_LOG_ERROR]", {
+      message: err.message,
+      type,
+      module: moduleName
+    });
+    // In production, you might later queue or retry these
+    return null;
+  }
+}
+
+module.exports = { codexLog };
+You can import this everywhere in your logistics app as:
+
+js
+const { codexLog } = require("@borders/codex-client");
+In the short term, if you don’t want to deal with monorepo wiring, you can copy this file directly into apps/api/src/codex/codexClient.js and import from there.
+
+3. Integration code for your logistics API
+Below is a simple but real Express API that:
+
+creates loads
+
+lists loads
+
+marks loads delivered
+
+emits Codex events for each major action
+
+Place this in apps/api.
+
+3.1 apps/api/package.json
+json
+{
+  "name": "borders-dynasty-api",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "test": "echo \"(add Jest later)\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "axios": "^1.7.0"
+  }
+}
+3.2 apps/api/src/codex/codexClient.js
+If you’re not yet wiring the @borders/codex-client package, use this local copy:
+
+js
+const axios = require("axios");
+
+const CODEX_URL = process.env.CODEX_URL || "http://localhost:3001";
+
+async function codexLog(type, moduleName, data = {}, actor = "system") {
+  try {
+    const res = await axios.post(`${CODEX_URL}/codex/records`, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("[CODEX_LOG_ERROR]", {
+      message: err.message,
+      type,
+      module: moduleName
+    });
+    return null;
+  }
+}
+
+module.exports = { codexLog };
+3.3 apps/api/src/services/loads.service.js
+js
+const loads = []; // in-memory for now
+
+function createLoad(data) {
+  const { origin, destination } = data;
+
+  const load = {
+    id: loads.length + 1,
+    origin,
+    destination,
+    status: "CREATED",
+    createdAt: new Date().toISOString()
+  };
+
+  loads.push(load);
+  return load;
+}
+
+function getAllLoads() {
+  return loads;
+}
+
+function getLoadById(id) {
+  return loads.find(l => l.id === id);
+}
+
+function markDelivered(id) {
+  const load = getLoadById(id);
+  if (!load) return null;
+
+  load.status = "DELIVERED";
+  load.deliveredAt = new Date().toISOString();
+  return load;
+}
+
+module.exports = {
+  createLoad,
+  getAllLoads,
+  getLoadById,
+  markDelivered
+};
+3.4 apps/api/src/controllers/loads.controller.js
+js
+const {
+  createLoad,
+  getAllLoads,
+  getLoadById,
+  markDelivered
+} = require("../services/loads.service");
+
+const { codexLog } = require("../codex/codexClient");
+
+async function createLoadHandler(req, res) {
+  const { origin, destination } = req.body;
+
+  if (!origin || !destination) {
+    return res.status(400).json({ error: "origin and destination are required" });
+  }
+
+  const load = createLoad({ origin, destination });
+
+  await codexLog("LOAD_CREATED", "LOGISTICS", {
+    loadId: load.id,
+    origin,
+    destination
+  }, "omega");
+
+  res.status(201).json(load);
+}
+
+async function getLoadsHandler(req, res) {
+  const list = getAllLoads();
+  res.json(list);
+}
+
+async function getLoadByIdHandler(req, res) {
+  const id = parseInt(req.params.id, 10);
+  const load = getLoadById(id);
+
+  if (!load) {
+    return res.status(404).json({ error: "Load not found" });
+  }
+
+  res.json(load);
+}
+
+async function markDeliveredHandler(req, res) {
+  const id = parseInt(req.params.id, 10);
+  const load = markDelivered(id);
+
+  if (!load) {
+    return res.status(404).json({ error: "Load not found" });
+  }
+
+  await codexLog("LOAD_DELIVERED", "LOGISTICS", { loadId: load.id }, "omega");
+
+  res.json(load);
+}
+
+module.exports = {
+  createLoadHandler,
+  getLoadsHandler,
+  getLoadByIdHandler,
+  markDeliveredHandler
+};
+3.5 apps/api/src/routes/loads.routes.js
+js
+const express = require("express");
+const {
+  createLoadHandler,
+  getLoadsHandler,
+  getLoadByIdHandler,
+  markDeliveredHandler
+} = require("../controllers/loads.controller");
+
+const router = express.Router();
+
+router.post("/", createLoadHandler);
+router.get("/", getLoadsHandler);
+router.get("/:id", getLoadByIdHandler);
+router.post("/:id/delivered", markDeliveredHandler);
+
+module.exports = router;
+3.6 apps/api/src/index.js
+js
+const express = require("express");
+const loadsRoutes = require("./routes/loads.routes");
+
+const app = express();
+app.use(express.json());
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Borders Dynasty API" });
+});
+
+// Register routes
+app.use("/loads", loadsRoutes);
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Borders Dynasty API running on port ${port}`);
+});
+You can run locally:
+
+bash
+cd apps/api
+npm install
+npm start
+Test:
+
+GET http://localhost:3000/health
+
+POST http://localhost:3000/loads with { "origin": "LA", "destination": "Phoenix" }
+
+Once Codex is running and CODEX_URL is set, each load will also log to Codex.
+
+4. Render deployment instructions
+You’ll deploy two services:
+
+codex-ecclesia-public (Codex)
+
+borders-dynasty API (Logistics)

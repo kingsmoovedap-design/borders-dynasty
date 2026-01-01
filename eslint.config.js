@@ -2,7 +2,7 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'artifacts/**', 'cache/**', 'typechain-types/**']
+    ignores: ['dist/**', 'node_modules/**', 'artifacts/**', 'cache/**', 'typechain-types/**', 'apps/**', 'packages/**']
   },
   {
     files: ['**/*.js'],
