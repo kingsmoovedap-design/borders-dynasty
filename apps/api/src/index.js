@@ -91,6 +91,9 @@ const reverseLogistics = require("../../../packages/reverse-logistics/index.cjs"
 const courierHub = require("../../../packages/courier-hub/index.cjs");
 const universalCapture = require("../../../packages/universal-capture/index.cjs");
 const multimodalDist = require("../../../packages/multimodal-distribution/index.cjs");
+const mobileOperator = require("../../../packages/mobile-operator/index.cjs");
+const bscBridge = require("../../../packages/bsc-bridge/index.cjs");
+const ecclesiaIntegration = require("../../../packages/ecclesia-integration/index.cjs");
 
 const governanceClient = new GovernanceClient();
 const operatorPortal = new SingleOperatorPortal();
@@ -2442,6 +2445,369 @@ app.get("/distribution/queue", (req, res) => {
     limit: req.query.limit ? parseInt(req.query.limit) : 100
   };
   res.json(multimodalDist.getRoutingQueue(filters));
+});
+
+app.get("/mobile/operator-types", (req, res) => {
+  res.json(mobileOperator.getOperatorTypes());
+});
+
+app.get("/mobile/notification-types", (req, res) => {
+  res.json(mobileOperator.getNotificationTypes());
+});
+
+app.get("/mobile/home-direction-thresholds", (req, res) => {
+  res.json(mobileOperator.getHomeDirectionThresholds());
+});
+
+app.get("/mobile/regions", (req, res) => {
+  res.json(mobileOperator.getUSRegions());
+});
+
+app.post("/mobile/register", async (req, res) => {
+  const operatorData = req.body;
+  if (!operatorData.name || !operatorData.email || !operatorData.homeBase) {
+    return res.status(400).json({ error: "name, email, and homeBase required" });
+  }
+  
+  const result = await mobileOperator.registerOperator(operatorData);
+  if (result.success) {
+    await codexLog("OPERATOR_REGISTERED", "MOBILE_APP", { operatorId: result.operator.id, type: result.operator.operatorType.id }, "mobile");
+    await ecclesiaIntegration.anchorToEcclesia("OPERATOR_REGISTERED", "MOBILE_APP", { operatorId: result.operator.id }, "PARTNER");
+  }
+  res.json(result);
+});
+
+app.put("/mobile/:operatorId/location", authMiddleware(), async (req, res) => {
+  const location = req.body;
+  if (!location.lat || !location.lng) return res.status(400).json({ error: "lat and lng required" });
+  res.json(await mobileOperator.updateOperatorLocation(req.params.operatorId, location));
+});
+
+app.get("/mobile/:operatorId/dashboard", authMiddleware(), (req, res) => {
+  const result = mobileOperator.getOperatorDashboard(req.params.operatorId);
+  if (!result.success) return res.status(404).json(result);
+  res.json(result);
+});
+
+app.get("/mobile/:operatorId/notifications", authMiddleware(), (req, res) => {
+  const filters = {
+    status: req.query.status,
+    pending: req.query.pending === 'true',
+    limit: req.query.limit ? parseInt(req.query.limit) : 50
+  };
+  res.json(mobileOperator.getOperatorNotifications(req.params.operatorId, filters));
+});
+
+app.post("/mobile/:operatorId/notification/:notificationId/respond", authMiddleware(), async (req, res) => {
+  const { response } = req.body;
+  if (!response || !["ACCEPT", "DECLINE"].includes(response)) {
+    return res.status(400).json({ error: "response must be ACCEPT or DECLINE" });
+  }
+  
+  const result = await mobileOperator.respondToNotification(req.params.notificationId, response);
+  if (result.success) {
+    await codexLog(`LOAD_${response}ED`, "MOBILE_APP", { notificationId: req.params.notificationId, operatorId: req.params.operatorId }, "mobile");
+  }
+  res.json(result);
+});
+
+app.get("/mobile/:operatorId/nearby-loads", authMiddleware(), (req, res) => {
+  const filters = {
+    maxRadius: req.query.maxRadius ? parseInt(req.query.maxRadius) : undefined
+  };
+  res.json(mobileOperator.findNearbyLoads(req.params.operatorId, filters));
+});
+
+app.post("/mobile/:operatorId/route-home", authMiddleware(), (req, res) => {
+  const preferences = req.body;
+  res.json(mobileOperator.planRouteHome(req.params.operatorId, preferences));
+});
+
+app.post("/mobile/broadcast-load", authMiddleware(), async (req, res) => {
+  const { load, radius } = req.body;
+  if (!load || !load.id) return res.status(400).json({ error: "load with id required" });
+  
+  const result = mobileOperator.broadcastLoadToNearbyOperators(load, radius || 100);
+  await codexLog("LOAD_BROADCAST", "MOBILE_APP", { loadId: load.id, notificationsSent: result.notificationsSent }, "mobile");
+  res.json(result);
+});
+
+app.get("/mobile/operator/:operatorId", (req, res) => {
+  const operator = mobileOperator.getOperator(req.params.operatorId);
+  if (!operator) return res.status(404).json({ error: "Operator not found" });
+  res.json(operator);
+});
+
+app.get("/mobile/operators", (req, res) => {
+  const filters = {
+    type: req.query.type,
+    status: req.query.status,
+    equipment: req.query.equipment,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(mobileOperator.getOperators(filters));
+});
+
+app.get("/mobile/stats", (req, res) => {
+  res.json(mobileOperator.getMobileAppStats());
+});
+
+app.post("/mobile/score-home-direction", (req, res) => {
+  const { origin, destination, homeBase } = req.body;
+  if (!origin || !destination || !homeBase) {
+    return res.status(400).json({ error: "origin, destination, and homeBase required" });
+  }
+  
+  const score = mobileOperator.calculateHomeDirectionScore(origin, destination, homeBase);
+  const category = mobileOperator.getHomeDirectionCategory(score);
+  res.json({ score, category });
+});
+
+app.get("/bridge/chains", (req, res) => {
+  res.json(bscBridge.getSupportedChains());
+});
+
+app.get("/bridge/chains/active", (req, res) => {
+  res.json(bscBridge.getActiveChains());
+});
+
+app.get("/bridge/chains/planned", (req, res) => {
+  res.json(bscBridge.getPlannedChains());
+});
+
+app.get("/bridge/token/bsc", (req, res) => {
+  res.json(bscBridge.getBSCToken());
+});
+
+app.get("/bridge/token/dbt", (req, res) => {
+  res.json(bscBridge.getDynastyBridgeToken());
+});
+
+app.get("/bridge/fiat-providers", (req, res) => {
+  res.json(bscBridge.getFiatProviders());
+});
+
+app.get("/bridge/buyback-tiers", (req, res) => {
+  res.json(bscBridge.getBuybackTiers());
+});
+
+app.get("/bridge/payout-methods", (req, res) => {
+  res.json(bscBridge.getPayoutMethods());
+});
+
+app.get("/bridge/bsc-price", (req, res) => {
+  res.json(bscBridge.getBSCPrice());
+});
+
+app.post("/bridge/buyback/quote", (req, res) => {
+  const { bscAmount, payoutMethod } = req.body;
+  if (!bscAmount) return res.status(400).json({ error: "bscAmount required" });
+  res.json(bscBridge.calculateBuybackQuote(bscAmount, payoutMethod));
+});
+
+app.post("/bridge/buyback/initiate", authMiddleware(), async (req, res) => {
+  const { partnerId, partnerType, bscAmount, payoutMethod, payoutDetails } = req.body;
+  if (!partnerId || !bscAmount) return res.status(400).json({ error: "partnerId and bscAmount required" });
+  
+  const result = await bscBridge.initiateBuyback(partnerId, partnerType || 'PARTNER', bscAmount, payoutMethod || 'ACH', payoutDetails);
+  if (result.success) {
+    await codexLog("BUYBACK_INITIATED", "BSC_BRIDGE", { buybackId: result.buyback.id, bscAmount }, "treasury");
+    await ecclesiaIntegration.anchorToEcclesia("BUYBACK_INITIATED", "BSC_BRIDGE", { buybackId: result.buyback.id, bscAmount }, "TREASURY");
+  }
+  res.json(result);
+});
+
+app.post("/bridge/buyback/:buybackId/confirm", authMiddleware(), async (req, res) => {
+  const { txHash } = req.body;
+  if (!txHash) return res.status(400).json({ error: "txHash required" });
+  
+  const result = await bscBridge.confirmBuybackTransaction(req.params.buybackId, txHash);
+  if (result.success) {
+    await codexLog("BUYBACK_CONFIRMED", "BSC_BRIDGE", { buybackId: req.params.buybackId, txHash }, "treasury");
+  }
+  res.json(result);
+});
+
+app.post("/bridge/buyback/:buybackId/process", authMiddleware(), async (req, res) => {
+  const result = await bscBridge.processBuybackPayout(req.params.buybackId);
+  if (result.success) {
+    await codexLog("BUYBACK_PROCESSING", "BSC_BRIDGE", { buybackId: req.params.buybackId }, "treasury");
+    await ecclesiaIntegration.anchorToEcclesia("BUYBACK_COMPLETED", "BSC_BRIDGE", { buybackId: req.params.buybackId }, "TREASURY");
+  }
+  res.json(result);
+});
+
+app.get("/bridge/buyback/:buybackId", (req, res) => {
+  const buyback = bscBridge.getBuyback(req.params.buybackId);
+  if (!buyback) return res.status(404).json({ error: "Buyback not found" });
+  res.json(buyback);
+});
+
+app.get("/bridge/partner/:partnerId/buybacks", (req, res) => {
+  res.json(bscBridge.getPartnerBuybacks(req.params.partnerId));
+});
+
+app.post("/bridge/transfer/initiate", authMiddleware(), async (req, res) => {
+  const { userId, sourceChain, destChain, amount } = req.body;
+  if (!userId || !sourceChain || !destChain || !amount) {
+    return res.status(400).json({ error: "userId, sourceChain, destChain, and amount required" });
+  }
+  
+  const result = await bscBridge.initiateBridgeTransfer(userId, sourceChain, destChain, amount);
+  if (result.success) {
+    await codexLog("BRIDGE_INITIATED", "BSC_BRIDGE", { bridgeId: result.transaction.id, sourceChain, destChain, amount }, "bridge");
+    await ecclesiaIntegration.anchorToEcclesia("BRIDGE_INITIATED", "BSC_BRIDGE", { bridgeId: result.transaction.id }, "BRIDGE");
+  }
+  res.json(result);
+});
+
+app.post("/bridge/transfer/:bridgeId/confirm-source", authMiddleware(), (req, res) => {
+  const { txHash } = req.body;
+  if (!txHash) return res.status(400).json({ error: "txHash required" });
+  res.json(bscBridge.confirmBridgeSource(req.params.bridgeId, txHash));
+});
+
+app.post("/bridge/transfer/:bridgeId/complete", authMiddleware(), async (req, res) => {
+  const { destTxHash } = req.body;
+  if (!destTxHash) return res.status(400).json({ error: "destTxHash required" });
+  
+  const result = await bscBridge.completeBridgeTransfer(req.params.bridgeId, destTxHash);
+  if (result.success) {
+    await codexLog("BRIDGE_COMPLETED", "BSC_BRIDGE", { bridgeId: req.params.bridgeId }, "bridge");
+    await ecclesiaIntegration.anchorToEcclesia("BRIDGE_COMPLETED", "BSC_BRIDGE", { bridgeId: req.params.bridgeId }, "BRIDGE");
+  }
+  res.json(result);
+});
+
+app.get("/bridge/transfer/:bridgeId", (req, res) => {
+  const tx = bscBridge.getBridgeTransaction(req.params.bridgeId);
+  if (!tx) return res.status(404).json({ error: "Bridge transaction not found" });
+  res.json(tx);
+});
+
+app.get("/bridge/user/:userId/transfers", (req, res) => {
+  res.json(bscBridge.getUserBridgeTransactions(req.params.userId));
+});
+
+app.post("/bridge/fiat/initiate", authMiddleware(), async (req, res) => {
+  const { userId, type, cryptoAmount, fiatCurrency, provider } = req.body;
+  if (!userId || !type || !cryptoAmount || !fiatCurrency || !provider) {
+    return res.status(400).json({ error: "userId, type, cryptoAmount, fiatCurrency, and provider required" });
+  }
+  
+  const result = await bscBridge.initiateFiatTransaction(userId, type, cryptoAmount, fiatCurrency, provider);
+  if (result.success) {
+    await codexLog("FIAT_INITIATED", "BSC_BRIDGE", { transactionId: result.transaction.id, type, cryptoAmount }, "treasury");
+  }
+  res.json(result);
+});
+
+app.post("/bridge/fiat/:transactionId/complete", authMiddleware(), async (req, res) => {
+  const { providerTxId } = req.body;
+  if (!providerTxId) return res.status(400).json({ error: "providerTxId required" });
+  
+  const result = await bscBridge.completeFiatTransaction(req.params.transactionId, providerTxId);
+  if (result.success) {
+    await codexLog("FIAT_COMPLETED", "BSC_BRIDGE", { transactionId: req.params.transactionId }, "treasury");
+    await ecclesiaIntegration.anchorToEcclesia("FIAT_TRANSACTION", "BSC_BRIDGE", { transactionId: req.params.transactionId }, "TREASURY");
+  }
+  res.json(result);
+});
+
+app.get("/bridge/fiat/:transactionId", (req, res) => {
+  const tx = bscBridge.getFiatTransaction(req.params.transactionId);
+  if (!tx) return res.status(404).json({ error: "Fiat transaction not found" });
+  res.json(tx);
+});
+
+app.get("/bridge/user/:userId/fiat", (req, res) => {
+  res.json(bscBridge.getUserFiatTransactions(req.params.userId));
+});
+
+app.get("/bridge/stats", (req, res) => {
+  res.json(bscBridge.getBridgeStats());
+});
+
+app.get("/ecclesia/config", (req, res) => {
+  res.json(ecclesiaIntegration.getEcclesiaConfig());
+});
+
+app.get("/ecclesia/scroll-types", (req, res) => {
+  res.json(ecclesiaIntegration.getScrollTypes());
+});
+
+app.get("/ecclesia/ministries", (req, res) => {
+  res.json(ecclesiaIntegration.getMinistries());
+});
+
+app.get("/ecclesia/anchor-categories", (req, res) => {
+  res.json(ecclesiaIntegration.getAnchorCategories());
+});
+
+app.get("/ecclesia/portals", (req, res) => {
+  res.json(ecclesiaIntegration.getPortals());
+});
+
+app.get("/ecclesia/portal/:portalId/url", (req, res) => {
+  const url = ecclesiaIntegration.getPortalUrl(req.params.portalId);
+  if (!url) return res.status(404).json({ error: "Portal not found" });
+  res.json({ portalId: req.params.portalId, url });
+});
+
+app.post("/ecclesia/anchor", authMiddleware(), async (req, res) => {
+  const { eventType, module, data, category } = req.body;
+  if (!eventType || !module || !data) {
+    return res.status(400).json({ error: "eventType, module, and data required" });
+  }
+  
+  const result = await ecclesiaIntegration.anchorToEcclesia(eventType, module, data, category || "GOVERNANCE");
+  res.json(result);
+});
+
+app.post("/ecclesia/verify", (req, res) => {
+  const { scrollId, hash } = req.body;
+  if (!scrollId || !hash) return res.status(400).json({ error: "scrollId and hash required" });
+  
+  ecclesiaIntegration.verifyScroll(scrollId, hash).then(result => res.json(result));
+});
+
+app.get("/ecclesia/anchors/pending", (req, res) => {
+  res.json(ecclesiaIntegration.getPendingAnchors());
+});
+
+app.get("/ecclesia/anchors", (req, res) => {
+  const filters = {
+    category: req.query.category,
+    module: req.query.module,
+    eventType: req.query.eventType,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(ecclesiaIntegration.getAnchoredScrolls(filters));
+});
+
+app.get("/ecclesia/anchor/:anchorId", (req, res) => {
+  const anchor = ecclesiaIntegration.getAnchor(req.params.anchorId);
+  if (!anchor) return res.status(404).json({ error: "Anchor not found" });
+  res.json(anchor);
+});
+
+app.post("/ecclesia/retry-failed", authMiddleware(), async (req, res) => {
+  const result = await ecclesiaIntegration.retryFailedAnchors();
+  res.json(result);
+});
+
+app.get("/ecclesia/stats", (req, res) => {
+  res.json(ecclesiaIntegration.getEcclesiaStats());
+});
+
+app.get("/ecclesia/link/governance", (req, res) => {
+  const params = req.query;
+  res.json({ url: ecclesiaIntegration.buildGovernanceLink("view", params) });
+});
+
+app.get("/ecclesia/link/bsc", (req, res) => {
+  const params = req.query;
+  res.json({ url: ecclesiaIntegration.buildBSCLink("transfer", params) });
 });
 
 const port = process.env.API_PORT || 3000;
