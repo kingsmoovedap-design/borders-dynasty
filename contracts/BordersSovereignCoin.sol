@@ -17,10 +17,14 @@ contract BordersSovereignCoin is
     OwnableUpgradeable 
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant GUARD_ROLE = keccak256("GUARD_ROLE");
     uint256 public constant MAX_SUPPLY = 1_000_000 * 10 ** 18;
+
+    mapping(address => bool) private _blacklist;
 
     event SovereignMint(address indexed to, uint256 amount);
     event SovereignBurn(address indexed from, uint256 amount);
+    event BlacklistUpdated(address indexed account, bool isBlacklisted);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -36,6 +40,7 @@ contract BordersSovereignCoin is
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialOwner);
         _grantRole(MINTER_ROLE, initialOwner);
+        _grantRole(GUARD_ROLE, initialOwner);
     }
 
     function pause() public onlyOwner {
@@ -46,22 +51,33 @@ contract BordersSovereignCoin is
         _unpause();
     }
 
+    function setBlacklist(address account, bool status) public onlyRole(GUARD_ROLE) {
+        _blacklist[account] = status;
+        emit BlacklistUpdated(account, status);
+    }
+
+    function isBlacklisted(address account) public view returns (bool) {
+        return _blacklist[account];
+    }
+
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        require(!_blacklist[to], "BSC: recipient is blacklisted");
         require(totalSupply() + amount <= MAX_SUPPLY, "BSC: cap exceeded");
         _mint(to, amount);
         emit SovereignMint(to, amount);
     }
 
     function burn(uint256 amount) public {
+        require(!_blacklist[_msgSender()], "BSC: caller is blacklisted");
         _burn(_msgSender(), amount);
         emit SovereignBurn(_msgSender(), amount);
     }
 
-    // The following functions are overrides required by Solidity.
     function _update(address from, address to, uint256 value)
         internal
         override(ERC20Upgradeable, ERC20PausableUpgradeable)
     {
+        require(!_blacklist[from] && !_blacklist[to], "BSC: address blacklisted");
         super._update(from, to, value);
     }
 }
