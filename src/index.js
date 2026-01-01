@@ -153,7 +153,7 @@ async function init() {
         userAddressSpan.innerText = address;
         
         // Auto-detect if this is the predefined Sovereign Wallet
-        const SOVEREIGN_WALLET = '0x...your...address...';
+        const SOVEREIGN_WALLET = '0xE89fDED72D0D83De3421C6642FA035ebE197804f';
         if (address.toLowerCase() === SOVEREIGN_WALLET.toLowerCase()) {
             logEvent('👑 Sovereign Administrator identity recognized.');
         }

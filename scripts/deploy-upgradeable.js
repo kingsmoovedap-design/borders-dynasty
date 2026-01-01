@@ -10,6 +10,20 @@ async function main() {
   await bsc.waitForDeployment();
   const address = await bsc.getAddress();
   console.log('BordersSovereignCoin proxy deployed to:', address);
+
+  // Auto-verify if ETHERSCAN_API_KEY is present
+  if (process.env.ETHERSCAN_API_KEY) {
+    console.log('Initiating Etherscan verification...');
+    try {
+      await run("verify:verify", {
+        address: address,
+        constructorArguments: [],
+      });
+      console.log('Verification successful');
+    } catch (e) {
+      console.log('Verification failed:', e.message);
+    }
+  }
 }
 
 main()
