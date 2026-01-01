@@ -1,7 +1,5 @@
 const crypto = require('crypto');
-const { Pool } = require('pg');
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const axios = require('axios');
 
 const INTEL_CATEGORIES = {
   MARKET: 'MARKET',
@@ -23,7 +21,10 @@ const INTEL_SOURCES = {
 };
 
 const intelCache = new Map();
+const alertsCache = [];
+const MAX_ALERTS = 100;
 const CACHE_TTL = 60000;
+const ALERT_TTL = 3600000;
 
 const sourceHealth = new Map();
 
@@ -31,16 +32,20 @@ function generateId(prefix = 'INTEL') {
   return `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 }
 
-async function codexLog(type, module, data, actor = 'live-intel') {
+async function codexLog(type, moduleName, data, actor = 'live-intel') {
   const codexUrl = process.env.CODEX_URL || 'http://localhost:3001';
   try {
-    await fetch(`${codexUrl}/codex/records`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, module, data, actor })
+    const response = await axios.post(`${codexUrl}/codex/records`, {
+      type,
+      module: moduleName,
+      data,
+      actor
     });
+    console.log('[CODEX] New record:', response.data);
+    return response.data;
   } catch (err) {
     console.error('[LIVE_INTEL] Codex log failed:', err.message);
+    return null;
   }
 }
 
@@ -450,41 +455,9 @@ async function runCollector(sourceId) {
 }
 
 async function persistSnapshot(data) {
-  try {
-    await pool.query(`
-      INSERT INTO live_intel_snapshots (source_id, category, metrics, advisories, obtained_at, expires_at)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [
-      data.sourceId,
-      data.category,
-      JSON.stringify(data.metrics),
-      JSON.stringify(data.advisories || []),
-      new Date(data.obtainedAt),
-      new Date(Date.now() + CACHE_TTL * 2)
-    ]);
-  } catch (err) {
-    console.error('[LIVE_INTEL] Failed to persist snapshot:', err.message);
-  }
 }
 
 async function persistAlert(alert, sourceId, category) {
-  try {
-    const id = generateId('ALERT');
-    await pool.query(`
-      INSERT INTO live_intel_alerts (id, source_id, category, severity, title, message, is_active, expires_at)
-      VALUES ($1, $2, $3, $4, $5, $6, true, $7)
-    `, [
-      id,
-      sourceId,
-      category,
-      alert.level || 'INFO',
-      alert.message.substring(0, 50),
-      alert.message,
-      new Date(Date.now() + 3600000)
-    ]);
-  } catch (err) {
-    console.error('[LIVE_INTEL] Failed to persist alert:', err.message);
-  }
 }
 
 let orchestratorInterval = null;
@@ -528,8 +501,31 @@ async function runOrchestrator() {
     }
   }
   
-  for (const alert of allAlerts.slice(0, 10)) {
-    await persistAlert(alert, alert.sourceId, INTEL_CATEGORIES.OPERATIONAL);
+  const now = Date.now();
+  for (const alert of allAlerts) {
+    alertsCache.push({
+      id: generateId('ALERT'),
+      sourceId: alert.sourceId,
+      category: alert.category || INTEL_CATEGORIES.OPERATIONAL,
+      severity: alert.level || 'INFO',
+      message: alert.message,
+      createdAt: new Date().toISOString(),
+      expiresAt: now + ALERT_TTL
+    });
+  }
+  
+  while (alertsCache.length > MAX_ALERTS) {
+    alertsCache.shift();
+  }
+  
+  const expiredThreshold = now;
+  let i = 0;
+  while (i < alertsCache.length) {
+    if (alertsCache[i].expiresAt < expiredThreshold) {
+      alertsCache.splice(i, 1);
+    } else {
+      i++;
+    }
   }
   
   const duration = Date.now() - startTime;
@@ -622,28 +618,12 @@ function getPartnerIntel() {
   return getLatestIntel(INTEL_CATEGORIES.PARTNER);
 }
 
-async function getActiveAlerts(limit = 50) {
-  try {
-    const result = await pool.query(`
-      SELECT * FROM live_intel_alerts 
-      WHERE is_active = true AND (expires_at IS NULL OR expires_at > NOW())
-      ORDER BY created_at DESC
-      LIMIT $1
-    `, [limit]);
-    
-    return result.rows.map(row => ({
-      id: row.id,
-      sourceId: row.source_id,
-      category: row.category,
-      severity: row.severity,
-      title: row.title,
-      message: row.message,
-      createdAt: row.created_at.toISOString()
-    }));
-  } catch (err) {
-    console.error('[LIVE_INTEL] Failed to get alerts:', err.message);
-    return [];
-  }
+function getActiveAlerts(limit = 50) {
+  const now = Date.now();
+  return alertsCache
+    .filter(alert => alert.expiresAt > now)
+    .slice(-limit)
+    .reverse();
 }
 
 function getDispatchAdjustments(region, mode) {
