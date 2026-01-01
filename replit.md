@@ -108,6 +108,25 @@ Regions: NORTH_AMERICA, EUROPE, ASIA_PACIFIC, LATAM
 - `GET /token/transactions` - List token transactions with filters
 - `GET /token/treasury/stats` - Treasury statistics and balances
 
+## Authentication API Endpoints
+- `POST /auth/omega/login` - Omega leadership login (body: { accessCode })
+- `POST /auth/refresh` - Refresh access token (body: { refreshToken })
+- `POST /auth/logout` - End session (requires auth)
+- `GET /auth/me` - Get current user info (requires auth)
+- `POST /auth/api-keys` - Create partner API key (omega only)
+- `GET /auth/api-keys` - List API keys (omega only)
+- `DELETE /auth/api-keys/:keyId` - Revoke API key (omega only)
+- `GET /auth/access-logs` - View access logs (omega only)
+
+## Audit API Endpoints
+- `GET /audit/stats` - Audit statistics (omega only)
+- `GET /audit/entries` - Query audit log with filters (omega only)
+- `POST /audit/report` - Generate compliance report (omega only)
+- `GET /audit/verify` - Verify chain integrity (omega only)
+
+## Governance API Endpoints
+- `GET /governance/constitution` - Dynasty OS constitution and IP ownership
+
 ## Logistics API Endpoints
 - `GET /health` - Health check with supported modes
 - `GET /loads` - List all loads

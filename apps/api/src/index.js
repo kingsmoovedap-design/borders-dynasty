@@ -40,6 +40,27 @@ const {
 
 const tokenIntegration = require("../../../packages/treasury/token-integration.cjs");
 
+const {
+  authenticateOmega,
+  generateApiKey,
+  validateApiKey,
+  revokeApiKey,
+  listApiKeys,
+  getAccessLogs,
+  refreshSession,
+  revokeSession,
+  authMiddleware,
+  ROLES
+} = require("../../../packages/auth/index.cjs");
+
+const {
+  createAuditEntry,
+  queryAuditLog,
+  generateComplianceReport,
+  verifyChainIntegrity,
+  getAuditStats
+} = require("../../../packages/audit/index.cjs");
+
 const app = express();
 
 app.use(cors(corsConfig));
@@ -816,6 +837,188 @@ app.get("/token/transactions", (req, res) => {
 
 app.get("/token/treasury/stats", (req, res) => {
   res.json(tokenIntegration.getTreasuryStats());
+});
+
+app.post("/auth/omega/login", async (req, res) => {
+  const { accessCode } = req.body;
+  
+  if (!accessCode) {
+    return res.status(400).json({ error: "accessCode required" });
+  }
+  
+  const result = authenticateOmega(accessCode);
+  
+  if (result.error) {
+    createAuditEntry('OMEGA_AUTH_FAILED', { reason: result.error }, 'anonymous', { ip: req.ip });
+    return res.status(401).json({ error: result.error });
+  }
+  
+  createAuditEntry('OMEGA_AUTH_SUCCESS', { sessionId: result.sessionId }, 'omega-leadership', { ip: req.ip });
+  await codexLog("OMEGA_SESSION_CREATED", "AUTH", { sessionId: result.sessionId }, "omega");
+  
+  res.json(result);
+});
+
+app.post("/auth/refresh", (req, res) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken) {
+    return res.status(400).json({ error: "refreshToken required" });
+  }
+  
+  const result = refreshSession(refreshToken);
+  
+  if (!result) {
+    return res.status(401).json({ error: "Invalid or expired refresh token" });
+  }
+  
+  res.json(result);
+});
+
+app.post("/auth/logout", authMiddleware(), (req, res) => {
+  const { sessionId } = req.auth;
+  
+  revokeSession(sessionId);
+  createAuditEntry('SESSION_LOGOUT', { sessionId }, req.auth.userId, { ip: req.ip });
+  
+  res.json({ success: true, message: "Logged out successfully" });
+});
+
+app.get("/auth/me", authMiddleware(), (req, res) => {
+  res.json({
+    userId: req.auth.userId,
+    role: req.auth.role,
+    permissions: req.auth.permissions,
+    authType: req.auth.authType
+  });
+});
+
+app.post("/auth/api-keys", strictRateLimiter, authMiddleware('*'), async (req, res) => {
+  const { partnerId, partnerName, permissions } = req.body;
+  
+  if (!partnerId || !partnerName) {
+    return res.status(400).json({ error: "partnerId and partnerName required" });
+  }
+  
+  const apiKey = generateApiKey(partnerId, partnerName, permissions);
+  
+  createAuditEntry('API_KEY_CREATED', { 
+    keyId: apiKey.keyId, 
+    partnerId, 
+    permissions: apiKey.permissions 
+  }, req.auth.userId, { ip: req.ip });
+  
+  await codexLog("API_KEY_ISSUED", "AUTH", { 
+    keyId: apiKey.keyId, 
+    partnerId 
+  }, "omega");
+  
+  res.json(apiKey);
+});
+
+app.get("/auth/api-keys", authMiddleware('*'), (req, res) => {
+  const partnerId = req.query.partnerId || null;
+  res.json(listApiKeys(partnerId));
+});
+
+app.delete("/auth/api-keys/:keyId", authMiddleware('*'), async (req, res) => {
+  const { keyId } = req.params;
+  
+  const revoked = revokeApiKey(keyId);
+  
+  if (!revoked) {
+    return res.status(404).json({ error: "API key not found" });
+  }
+  
+  createAuditEntry('API_KEY_REVOKED', { keyId }, req.auth.userId, { ip: req.ip });
+  await codexLog("API_KEY_REVOKED", "AUTH", { keyId }, "omega");
+  
+  res.json({ success: true, keyId });
+});
+
+app.get("/auth/access-logs", authMiddleware('*'), (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+  const filters = {
+    type: req.query.type,
+    userId: req.query.userId
+  };
+  
+  res.json(getAccessLogs(limit, filters));
+});
+
+app.get("/audit/stats", authMiddleware('*'), (req, res) => {
+  res.json(getAuditStats());
+});
+
+app.get("/audit/entries", authMiddleware('*'), (req, res) => {
+  const filters = {
+    category: req.query.category,
+    severity: req.query.severity,
+    eventType: req.query.eventType,
+    actor: req.query.actor,
+    startTime: req.query.startTime,
+    endTime: req.query.endTime
+  };
+  
+  const options = {
+    limit: parseInt(req.query.limit) || 100,
+    offset: parseInt(req.query.offset) || 0
+  };
+  
+  res.json(queryAuditLog(filters, options));
+});
+
+app.post("/audit/report", authMiddleware('*'), async (req, res) => {
+  const { reportType, startDate, endDate } = req.body;
+  
+  const report = generateComplianceReport(reportType || 'STANDARD', {
+    start: startDate,
+    end: endDate
+  });
+  
+  createAuditEntry('COMPLIANCE_REPORT_GENERATED', { 
+    reportId: report.id, 
+    reportType 
+  }, req.auth.userId, { ip: req.ip });
+  
+  await codexLog("COMPLIANCE_REPORT", "AUDIT", { 
+    reportId: report.id,
+    period: report.period
+  }, "omega");
+  
+  res.json(report);
+});
+
+app.get("/audit/verify", authMiddleware('*'), (req, res) => {
+  const startIndex = parseInt(req.query.startIndex) || 0;
+  const endIndex = req.query.endIndex ? parseInt(req.query.endIndex) : null;
+  
+  const result = verifyChainIntegrity(startIndex, endIndex);
+  
+  res.json(result);
+});
+
+app.get("/governance/constitution", (req, res) => {
+  res.json({
+    owner: "Private Ecclesia Trust",
+    version: "1.0.0",
+    articles: [
+      { id: 1, name: "Sovereignty of the Codex", principle: "Codex is the supreme ledger. Every action becomes a Codex event." },
+      { id: 2, name: "Separation of Powers", principle: "Four branches: Operational, Treasury, Compliance, Governance (Omega)" },
+      { id: 3, name: "Activation Authority", principle: "Only Omega may activate modes, regions, and nodes" },
+      { id: 4, name: "Dispatch Integrity", principle: "Dispatch decisions must be explainable, auditable, reversible" },
+      { id: 5, name: "Driver & Courier Rights", principle: "Transparent payouts, credit access, token rewards, safety protections" },
+      { id: 6, name: "Treasury Transparency", principle: "All treasury flows must be deterministic and anchored in Codex" },
+      { id: 7, name: "Continuous Improvement", principle: "The Dynasty OS evolves through Codex insights and AI learning" }
+    ],
+    ipOwnership: {
+      sourceCode: "Private Ecclesia Trust",
+      brand: "Private Ecclesia Trust",
+      algorithms: "Private Ecclesia Trust",
+      tokenLogic: "Private Ecclesia Trust",
+      likeness: "Private Ecclesia Trust"
+    }
+  });
 });
 
 const port = process.env.API_PORT || 3000;

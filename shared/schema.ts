@@ -133,6 +133,44 @@ export const securityEvents = pgTable("security_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const authSessions = pgTable("auth_sessions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("user_id", { length: 64 }).notNull(),
+  role: varchar("role", { length: 32 }).notNull(),
+  accessTokenHash: varchar("access_token_hash", { length: 128 }).notNull(),
+  refreshTokenHash: varchar("refresh_token_hash", { length: 128 }).notNull(),
+  metadata: jsonb("metadata"),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  partnerId: varchar("partner_id", { length: 64 }).notNull(),
+  partnerName: text("partner_name").notNull(),
+  secretHash: varchar("secret_hash", { length: 128 }).notNull(),
+  permissions: jsonb("permissions").notNull(),
+  rateLimit: integer("rate_limit").notNull().default(100),
+  status: varchar("status", { length: 16 }).notNull().default("ACTIVE"),
+  lastUsed: timestamp("last_used"),
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const auditEntries = pgTable("audit_entries", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  eventType: varchar("event_type", { length: 64 }).notNull(),
+  category: varchar("category", { length: 32 }).notNull(),
+  severity: varchar("severity", { length: 16 }).notNull(),
+  actor: varchar("actor", { length: 64 }).notNull(),
+  data: jsonb("data"),
+  metadata: jsonb("metadata"),
+  hash: varchar("hash", { length: 128 }).notNull(),
+  previousHash: varchar("previous_hash", { length: 128 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const loadsRelations = relations(loads, ({ one }) => ({
   driver: one(drivers, {
     fields: [loads.driverId],
