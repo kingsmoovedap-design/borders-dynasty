@@ -1,21 +1,18 @@
 services:
   - type: web
     name: borders-dynasty
-    env: docker
+    env: node
     plan: free
     region: oregon
     branch: main
-    dockerfilePath: ./Dockerfile
-    buildCommand: ""
-    startCommand: "node server.js"
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
+      - key: NODE_VERSION
+        value: 20
       - key: RPC_URL
-        sync: false
+        fromSecret: RPC_URL
       - key: PRIVATE_KEY
-        sync: false
-      - key: ALCHEMY_AUTH_TOKEN
-        sync: false
-      - key: WEBHOOK_ID
-        sync: false
-      - key: KING
-        sync: false
+        fromSecret: PRIVATE_KEY
+      - key: ETHERSCAN_API_KEY
+        fromSecret: ETHERSCAN_API_KEY
