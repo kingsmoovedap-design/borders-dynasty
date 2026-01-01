@@ -1,0 +1,458 @@
+🔱 I. THE DYNASTY OS KNOWLEDGE GRAPH SCHEMA
+The Unified Intelligence Map of the Dynasty OS
+Think of this as the neural network of your logistics nation — every entity, every relationship, every event.
+
+1. Core Entities
+These are the “atoms” of the Dynasty OS:
+
+Load
+
+Driver
+
+Courier
+
+Shipper
+
+Fleet Partner
+
+Region
+
+Mode
+
+Node (city, port, airport, warehouse)
+
+Vehicle / Equipment
+
+Treasury Account
+
+Credit Account
+
+Codex Event
+
+Compliance Rule
+
+Risk Profile
+
+Token Wallet
+
+Partner Contract
+
+Activation Switch
+
+2. Relationship Graph
+These are the “edges” — the connections that create intelligence:
+
+Load → Driver (assigned, completed, performance)
+
+Load → Region (origin, destination)
+
+Load → Mode (GROUND, AIR, OCEAN, COURIER)
+
+Load → Codex Events (timeline)
+
+Driver → Credit Account (balance, history)
+
+Driver → Token Wallet (rewards, loyalty)
+
+Shipper → Loads (book of business)
+
+Fleet Partner → Drivers (capacity)
+
+Region → Nodes (activation map)
+
+Node → Compliance Rules (local requirements)
+
+Treasury Account → Payouts (settlements)
+
+Partner Contract → Compliance Rules
+
+Activation Switch → Region/Mode
+
+3. Knowledge Graph Uses
+The graph powers:
+
+dispatch
+
+compliance
+
+treasury
+
+credit
+
+risk
+
+loyalty
+
+partner scoring
+
+global expansion modeling
+
+This is the Dynasty Brain.
+
+🔱 II. THE DYNASTY OS COMPLIANCE RULEBOOK
+The Operational Lawbook of the Dynasty OS
+This is a conceptual structure founders use to organize compliance — not legal advice.
+
+1. Mode‑Based Rules
+GROUND
+equipment requirements
+
+hours of service
+
+hazmat handling
+
+weight limits
+
+AIR
+cargo screening
+
+airport security
+
+air waybill documentation
+
+OCEAN
+container sealing
+
+port handling
+
+customs declarations
+
+COURIER
+chain‑of‑custody
+
+signature capture
+
+multi‑stop routing
+
+2. Region‑Based Rules
+Each region has:
+
+operational standards
+
+documentation requirements
+
+safety rules
+
+local restrictions
+
+3. Cargo‑Based Rules
+Cargo categories:
+
+general freight
+
+hazmat
+
+temperature‑controlled
+
+high‑value
+
+bonded cargo
+
+Each category triggers specific checks.
+
+4. Driver/Courier Eligibility Rules
+Drivers must meet:
+
+certification requirements
+
+equipment requirements
+
+safety standards
+
+operational readiness
+
+5. Documentation Rules
+Every load must have:
+
+BOL
+
+POD
+
+customs forms
+
+manifests
+
+courier signatures
+
+All stored in Codex.
+
+6. Exception Rules
+Exceptions include:
+
+delays
+
+missed pickups
+
+damaged cargo
+
+compliance violations
+
+Each exception triggers:
+
+Codex event
+
+risk adjustment
+
+potential dispatch override
+
+🔱 III. THE DYNASTY OS AI DISPATCH ALGORITHM (FULL SPEC)
+The Intelligence Engine of the Dynasty OS
+This is a multi‑factor scoring system that ranks drivers/couriers.
+
+1. Eligibility Filter
+Driver must match:
+
+mode
+
+region
+
+equipment
+
+operational requirements
+
+hours of service
+
+insurance
+
+performance standing
+
+If not eligible → excluded.
+
+2. Proximity Score (0–25 pts)
+Based on:
+
+distance to pickup
+
+traffic
+
+real‑time conditions
+
+3. Performance Score (0–25 pts)
+Based on:
+
+on‑time rate
+
+safety record
+
+cancellation rate
+
+customer ratings
+
+4. Loyalty Score (0–15 pts)
+Based on:
+
+tenure
+
+participation
+
+performance history
+
+5. Utilization Score (0–15 pts)
+Based on:
+
+current workload
+
+upcoming commitments
+
+idle time
+
+6. Margin Score (0–20 pts)
+Based on:
+
+load budget
+
+driver cost
+
+expected profitability
+
+Total Score = 0–100
+AI returns:
+
+primary driver
+
+backups
+
+explanation breakdown
+
+Ops can override → Codex logs reason.
+
+🔱 IV. THE DYNASTY OS TREASURY FLOW MODEL
+The Financial Circulatory System of the Dynasty OS
+Treasury handles:
+
+payouts
+
+dynasty share
+
+partner share
+
+performance rewards
+
+credit adjustments
+
+1. Revenue Intake
+From:
+
+shipper payments
+
+partner fees
+
+premium services
+
+2. Payout Split Engine
+Given a load:
+
+Code
+driverShare = amount * config.driverShare
+partnerShare = amount * config.partnerShare
+dynastyShare = amount * config.dynastyShare
+rewardPoints = amount * config.rewardRate
+All values logged in Codex.
+
+3. Settlement Engine
+Executes:
+
+instant payouts
+
+scheduled payouts
+
+partner settlements
+
+4. Credit Integration
+If driver used credit:
+
+repayment deducted
+
+balance updated
+
+Codex logs event
+
+5. Reward System
+Rewards issued based on:
+
+performance
+
+loyalty
+
+operational contribution
+
+6. Treasury Dashboard
+Shows:
+
+cash flow
+
+outstanding credit
+
+reward distribution
+
+partner earnings
+
+🔱 V. THE DYNASTY OS DRIVER LOYALTY SYSTEM
+The Retention Engine of the Dynasty OS
+This system creates retention, performance, and network effects.
+
+1. Loyalty Tiers
+Bronze
+
+Silver
+
+Gold
+
+Platinum
+
+Dynasty Elite
+
+Each tier unlocks:
+
+better loads
+
+faster payouts
+
+higher credit limits
+
+reward multipliers
+
+priority dispatch
+
+2. Loyalty Points
+Earned for:
+
+on‑time delivery
+
+high ratings
+
+completing difficult lanes
+
+long‑term participation
+
+safe driving
+
+low cancellation rate
+
+3. Reward System
+Rewards earned for:
+
+performance
+
+loyalty
+
+referrals
+
+completing streaks
+
+Rewards can be used for:
+
+priority dispatch
+
+premium features
+
+credit repayment bonuses
+
+4. Credit Benefits
+Higher loyalty = better credit terms:
+
+lower fees
+
+higher limits
+
+faster approvals
+
+5. Dynasty Citizenship
+Elite drivers become:
+
+ambassadors
+
+trainers
+
+beta testers
+
+governance participants (conceptually)
+
+This creates a community, not just a workforce.
+
+🔱 FINAL SYNTHESIS
+You now have:
+
+Knowledge Graph Schema
+
+Compliance Rulebook
+
+AI Dispatch Algorithm
+
+Treasury Flow Model
+
+Driver Loyalty System
+
+All written as a unified, sovereign architecture.
+
+If you want next, I can generate:
+
+The Dynasty OS Global Expansion Map
+
+The Dynasty OS Operational Playbook
+
+The Dynasty OS Codex Event Taxonomy
+
+The Dynasty OS Dispatch Console UI Spec
+
+Just tell me where you want to go next.

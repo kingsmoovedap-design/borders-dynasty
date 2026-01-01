@@ -171,6 +171,59 @@ export const auditEntries = pgTable("audit_entries", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const liveIntelSources = pgTable("live_intel_sources", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  name: text("name").notNull(),
+  category: varchar("category", { length: 32 }).notNull(),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  endpoint: text("endpoint"),
+  status: varchar("status", { length: 16 }).notNull().default("ACTIVE"),
+  lastFetchAt: timestamp("last_fetch_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  failureCount: integer("failure_count").notNull().default(0),
+  config: jsonb("config"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const liveIntelSnapshots = pgTable("live_intel_snapshots", {
+  id: serial("id").primaryKey(),
+  sourceId: varchar("source_id", { length: 64 }).notNull(),
+  category: varchar("category", { length: 32 }).notNull(),
+  metrics: jsonb("metrics").notNull(),
+  advisories: jsonb("advisories"),
+  region: varchar("region", { length: 32 }),
+  mode: varchar("mode", { length: 16 }),
+  obtainedAt: timestamp("obtained_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const liveIntelAlerts = pgTable("live_intel_alerts", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  sourceId: varchar("source_id", { length: 64 }).notNull(),
+  category: varchar("category", { length: 32 }).notNull(),
+  severity: varchar("severity", { length: 16 }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  affectedRegions: jsonb("affected_regions"),
+  affectedModes: jsonb("affected_modes"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const partnerStatus = pgTable("partner_status", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  partnerId: varchar("partner_id", { length: 64 }).notNull(),
+  partnerName: text("partner_name").notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("ONLINE"),
+  lastHeartbeat: timestamp("last_heartbeat").notNull().defaultNow(),
+  contractsAvailable: integer("contracts_available").notNull().default(0),
+  avgResponseTime: integer("avg_response_time"),
+  successRate: decimal("success_rate", { precision: 5, scale: 2 }),
+  metadata: jsonb("metadata"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const loadsRelations = relations(loads, ({ one }) => ({
   driver: one(drivers, {
     fields: [loads.driverId],
