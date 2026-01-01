@@ -26,6 +26,8 @@ services:
         fromSecret: ALCHEMY_API_KEY
       - key: ECCLESIA_INTEGRATION_URL
         value: "https://codex-ecclesia-public.onrender.com"
+      - key: ECCLESIA_SYNC_ENDPOINT
+        value: "/api/dynasty/sync"
       - key: DYNASTY_SHARED_SECRET
         fromSecret: DYNASTY_SHARED_SECRET
       - key: IDENTITY_CONTRACT_ADDRESS
