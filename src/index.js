@@ -5,11 +5,10 @@ import DynasticIdentity from './abis/DynasticIdentity.json';
 
 const BSC_CONTRACT_ADDRESS = '0x12efC9a5D115AE7833c9a6D79f1B3BA18Cde817c';
 const SEPOLIA_CHAIN_ID = '0xaa36a7';
-const SEPOLIA_CHAIN_ID_DEC = 11155111;
 
 const coinAbi = BordersSovereignCoin.abi;
-const registryAbi = ScrollHashRegistry.abi;
-const identityAbi = DynasticIdentity.abi;
+void ScrollHashRegistry;
+void DynasticIdentity;
 
 let provider = null;
 let signer = null;
@@ -362,7 +361,7 @@ async function init() {
       const tx = await bscContract.transfer(to, ethers.parseUnits(amount, decimals));
       logEvent(`Transaction submitted: ${tx.hash.substring(0, 16)}...`, 'info');
       await tx.wait();
-      logEvent(`Transfer confirmed!`, 'success');
+      logEvent('Transfer confirmed!', 'success');
       showToast('Transfer successful!', 'success');
       await refreshBalance();
       document.getElementById('transfer-to').value = '';
@@ -395,7 +394,7 @@ async function init() {
       const tx = await bscContract.mint(to, ethers.parseUnits(amount, decimals));
       logEvent(`Mint transaction submitted: ${tx.hash.substring(0, 16)}...`, 'info');
       await tx.wait();
-      logEvent(`Mint confirmed!`, 'success');
+      logEvent('Mint confirmed!', 'success');
       showToast('Minting successful!', 'success');
       await refreshBalance();
       loadContractInfo();
@@ -426,7 +425,7 @@ async function init() {
       logEvent(`Adding ${addr.substring(0, 8)}... to blacklist`, 'info');
       const tx = await bscContract.setBlacklist(addr, true);
       await tx.wait();
-      logEvent(`Address blacklisted successfully`, 'success');
+      logEvent('Address blacklisted successfully', 'success');
       showToast('Address added to blacklist', 'success');
       document.getElementById('blacklist-address').value = '';
     } catch (err) {
@@ -479,7 +478,7 @@ async function init() {
     }
     const hash = generateHashFromText(text);
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = `<strong>Verifying hash on-chain...</strong>`;
+    resultDiv.innerHTML = '<strong>Verifying hash on-chain...</strong>';
     logEvent(`Verifying document: ${hash.substring(0, 16)}...`, 'info');
     
     setTimeout(() => {
