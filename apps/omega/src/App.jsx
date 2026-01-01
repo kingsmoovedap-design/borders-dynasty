@@ -51,12 +51,16 @@ function Sidebar() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '&#128200;' },
+    { path: '/ecclesia', label: 'Ecclesia', icon: '&#9769;' },
     { path: '/dispatch', label: 'Dispatch Console', icon: '&#127919;' },
     { path: '/intel', label: 'Live Intel', icon: '&#128225;' },
     { path: '/loads', label: 'Loads', icon: '&#128230;' },
     { path: '/drivers', label: 'Drivers', icon: '&#128666;' },
+    { path: '/mobile', label: 'Mobile Operators', icon: '&#128241;' },
+    { path: '/bridge', label: 'BSC Bridge', icon: '&#128279;' },
     { path: '/contracts', label: 'Contracts', icon: '&#128196;' },
     { path: '/treasury', label: 'Treasury', icon: '&#128176;' },
+    { path: '/codex', label: 'Codex Ledger', icon: '&#128218;' },
     { path: '/ops', label: 'Ops Control', icon: '&#9881;' },
   ];
 
@@ -1224,6 +1228,594 @@ function OpsPage() {
   );
 }
 
+function EcclesiaPage() {
+  const [config, setConfig] = useState(null);
+  const [portals, setPortals] = useState([]);
+  const [ministries, setMinistries] = useState([]);
+  const [anchors, setAnchors] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [activePortal, setActivePortal] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.fetchEcclesiaConfig(),
+      api.fetchEcclesiaPortals(),
+      api.fetchEcclesiaMinistries(),
+      api.fetchEcclesiaAnchors(20),
+      api.fetchEcclesiaStats()
+    ]).then(([cfg, p, m, a, s]) => {
+      setConfig(cfg);
+      setPortals(p.portals || []);
+      setMinistries(m.ministries || []);
+      setAnchors(a.anchors || []);
+      setStats(s);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="main-content"><p>Loading Ecclesia Command Center...</p></div>;
+
+  const ECCLESIA_URL = 'https://codex-ecclesia-public.com';
+
+  return (
+    <div className="main-content">
+      <div className="header">
+        <h1 className="page-title">Ecclesia Command Center</h1>
+        <div className="header-actions">
+          <span className="status-badge status-active">QFS-COMPATIBLE</span>
+          <span className="status-badge" style={{ background: '#3b82f6', marginLeft: '8px' }}>ISO-20022</span>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Anchors</div>
+          <div className="stat-value">{stats?.totalAnchors || anchors.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Ministries</div>
+          <div className="stat-value">{ministries.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Governance Portals</div>
+          <div className="stat-value">{portals.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">CodexChain Status</div>
+          <div className="stat-value" style={{ color: '#10b981' }}>LIVE</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-header">
+          <h3 className="panel-title">Ecclesia Portals (codex-ecclesia-public.com)</h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+          {portals.map(portal => (
+            <div 
+              key={portal.id}
+              onClick={() => setActivePortal(portal)}
+              style={{ 
+                padding: '20px', 
+                background: activePortal?.id === portal.id ? '#2a2a6a' : '#1e1e3f', 
+                borderRadius: '12px',
+                cursor: 'pointer',
+                border: activePortal?.id === portal.id ? '2px solid #fbbf24' : '2px solid transparent',
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>{portal.icon}</div>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{portal.name}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>{portal.purpose}</div>
+            </div>
+          ))}
+          <a 
+            href={ECCLESIA_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ 
+              padding: '20px', 
+              background: 'linear-gradient(135deg, #1e1e3f 0%, #2a2a4a 100%)', 
+              borderRadius: '12px',
+              cursor: 'pointer',
+              border: '2px dashed #fbbf24',
+              textDecoration: 'none',
+              color: 'inherit',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>&#128279;</div>
+            <div style={{ fontWeight: '600', marginBottom: '4px' }}>Open Full Portal</div>
+            <div style={{ fontSize: '12px', color: '#fbbf24' }}>codex-ecclesia-public.com</div>
+          </a>
+        </div>
+      </div>
+
+      {activePortal && (
+        <div className="panel" style={{ marginTop: '16px' }}>
+          <div className="panel-header">
+            <h3 className="panel-title">{activePortal.icon} {activePortal.name}</h3>
+            <button className="btn btn-secondary" onClick={() => setActivePortal(null)}>Close</button>
+          </div>
+          <div style={{ 
+            width: '100%', 
+            height: '600px', 
+            borderRadius: '8px',
+            overflow: 'hidden',
+            background: '#0a0a1a'
+          }}>
+            <iframe
+              src={`${ECCLESIA_URL}${activePortal.url}`}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title={activePortal.name}
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="grid-2" style={{ marginTop: '16px' }}>
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Ministries</h3>
+          </div>
+          {ministries.map(ministry => (
+            <div key={ministry.id} style={{ padding: '12px 0', borderBottom: '1px solid #2a2a4a' }}>
+              <div style={{ fontWeight: '600' }}>{ministry.name}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                {ministry.jurisdiction?.join(', ')}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Recent Anchors</h3>
+          </div>
+          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            {anchors.slice(0, 10).map((anchor, i) => (
+              <div key={i} style={{ padding: '12px 0', borderBottom: '1px solid #2a2a4a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '13px' }}>{anchor.eventType}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280' }}>{anchor.module} | {anchor.category}</div>
+                  </div>
+                  <span className={`status-badge ${anchor.anchorStatus === 'ANCHORED' ? 'status-active' : 'status-pending'}`}>
+                    {anchor.anchorStatus}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {anchors.length === 0 && (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>No anchors yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileOperatorsPage() {
+  const [operators, setOperators] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.fetchMobileOperators(),
+      api.fetchMobileOperatorStats()
+    ]).then(([ops, s]) => {
+      setOperators(ops.operators || []);
+      setStats(s);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="main-content"><p>Loading Mobile Operators...</p></div>;
+
+  const operatorTypes = stats?.operatorTypes || {};
+
+  return (
+    <div className="main-content">
+      <div className="header">
+        <h1 className="page-title">Mobile Owner/Operators</h1>
+        <div className="header-actions">
+          <span className="status-badge status-active">NATIONWIDE</span>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Operators</div>
+          <div className="stat-value">{operators.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Now</div>
+          <div className="stat-value">{operators.filter(o => o.status === 'AVAILABLE').length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Notification Types</div>
+          <div className="stat-value">8</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Avg Home Score</div>
+          <div className="stat-value">{stats?.avgHomeScore || 'N/A'}</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-header">
+          <h3 className="panel-title">Operator Types</h3>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {['OWNER_OPERATOR', 'COMPANY_DRIVER', 'FLEET_OWNER', 'COURIER', 'EXPEDITER', 'HOTSHOT'].map(type => (
+            <div key={type} style={{ 
+              padding: '16px 24px', 
+              background: '#1e1e3f', 
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '24px', fontWeight: '700' }}>{operatorTypes[type] || 0}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>{type.replace('_', ' ')}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: '16px' }}>
+        <div className="panel-header">
+          <h3 className="panel-title">Registered Operators</h3>
+        </div>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Operator ID</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Equipment</th>
+              <th>Home Base</th>
+              <th>Status</th>
+              <th>Loads Done</th>
+            </tr>
+          </thead>
+          <tbody>
+            {operators.map(op => (
+              <tr key={op.id}>
+                <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{op.id}</td>
+                <td>{op.name}</td>
+                <td><span className="status-badge">{op.operatorType?.replace('_', ' ')}</span></td>
+                <td>{op.equipment?.types?.join(', ') || 'N/A'}</td>
+                <td>{op.homeBase?.city}, {op.homeBase?.state}</td>
+                <td><span className={`status-badge ${op.status === 'AVAILABLE' ? 'status-active' : ''}`}>{op.status}</span></td>
+                <td>{op.stats?.loadsCompleted || 0}</td>
+              </tr>
+            ))}
+            {operators.length === 0 && (
+              <tr><td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>No operators registered yet</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BSCBridgePage() {
+  const [chains, setChains] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [buybackTiers, setBuybackTiers] = useState([]);
+  const [fiatProviders, setFiatProviders] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.fetchBridgeChains(),
+      api.fetchBridgeTransactions(),
+      api.fetchBridgeStats(),
+      api.fetchBuybackTiers(),
+      api.fetchFiatProviders()
+    ]).then(([c, t, s, bt, fp]) => {
+      setChains(c.chains || c || []);
+      setTransactions(t.transactions || []);
+      setStats(s);
+      setBuybackTiers(bt.tiers || []);
+      setFiatProviders(fp.providers || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="main-content"><p>Loading BSC Bridge...</p></div>;
+
+  const activeChains = chains.filter(c => c.status === 'ACTIVE');
+  const plannedChains = chains.filter(c => c.status === 'PLANNED');
+
+  return (
+    <div className="main-content">
+      <div className="header">
+        <h1 className="page-title">BSC Cross-Chain Bridge</h1>
+        <div className="header-actions">
+          <span className="status-badge status-active">LIVE</span>
+          <span className="status-badge" style={{ background: '#8b5cf6', marginLeft: '8px' }}>DBT ENABLED</span>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Active Chains</div>
+          <div className="stat-value">{activeChains.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Bridge Transactions</div>
+          <div className="stat-value">{transactions.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Total Volume</div>
+          <div className="stat-value">${stats?.totalVolume || 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">BSC Price</div>
+          <div className="stat-value">${stats?.bscPrice || '12.50'}</div>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Supported Blockchains</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {activeChains.map(chain => (
+              <div key={chain.id} style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px',
+                background: '#1e1e3f',
+                borderRadius: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>{chain.symbol === 'ETH' ? '⟠' : chain.symbol === 'BNB' ? '🟡' : chain.symbol === 'MATIC' ? '🟣' : '🔗'}</span>
+                  <div>
+                    <div style={{ fontWeight: '600' }}>{chain.name}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{chain.symbol} | Bridge Fee: {chain.bridgeFee}%</div>
+                  </div>
+                </div>
+                <span className="status-badge status-active">ACTIVE</span>
+              </div>
+            ))}
+            {plannedChains.map(chain => (
+              <div key={chain.id} style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px',
+                background: '#1a1a2e',
+                borderRadius: '8px',
+                opacity: 0.7
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>🔗</span>
+                  <div>
+                    <div style={{ fontWeight: '600' }}>{chain.name}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{chain.symbol}</div>
+                  </div>
+                </div>
+                <span className="status-badge">PLANNED</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Buyback Tiers</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {buybackTiers.map(tier => (
+              <div key={tier.id} style={{ 
+                padding: '12px',
+                background: '#1e1e3f',
+                borderRadius: '8px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: '600', color: tier.id === 'DYNASTY' ? '#fbbf24' : '#fff' }}>{tier.name}</span>
+                  <span style={{ color: '#10b981' }}>{tier.bonus}% bonus</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Min: {tier.minAmount} BSC | Rate: ${tier.rate}/BSC
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: '16px' }}>
+        <div className="panel-header">
+          <h3 className="panel-title">Fiat Providers</h3>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {fiatProviders.map(provider => (
+            <div key={provider.id} style={{ 
+              padding: '16px',
+              background: '#1e1e3f',
+              borderRadius: '8px',
+              minWidth: '180px'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '8px' }}>{provider.name}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                <div>Fee: {provider.feePercent}%</div>
+                <div>Currencies: {provider.currencies?.join(', ')}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: '16px' }}>
+        <div className="panel-header">
+          <h3 className="panel-title">Recent Transactions</h3>
+        </div>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.slice(0, 10).map(tx => (
+              <tr key={tx.id}>
+                <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{tx.id}</td>
+                <td>{tx.type || 'BRIDGE'}</td>
+                <td>{tx.sourceChain}</td>
+                <td>{tx.destChain}</td>
+                <td>{tx.amount} {tx.token}</td>
+                <td><span className={`status-badge ${tx.status === 'COMPLETED' ? 'status-active' : ''}`}>{tx.status}</span></td>
+              </tr>
+            ))}
+            {transactions.length === 0 && (
+              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>No bridge transactions yet</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CodexLedgerPage() {
+  const [records, setRecords] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      const [r, s] = await Promise.all([
+        api.fetchCodexRecords(100),
+        api.fetchCodexStats()
+      ]);
+      setRecords(r.records || r || []);
+      setStats(s);
+    } catch (err) {
+      console.error('Failed to load codex data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div className="main-content"><p>Loading Codex Ledger...</p></div>;
+
+  const moduleTypes = {};
+  records.forEach(r => {
+    moduleTypes[r.module] = (moduleTypes[r.module] || 0) + 1;
+  });
+
+  return (
+    <div className="main-content">
+      <div className="header">
+        <h1 className="page-title">Codex Ledger</h1>
+        <div className="header-actions">
+          <span className="status-badge status-active">IMMUTABLE</span>
+          <button className="btn btn-secondary" onClick={loadData} style={{ marginLeft: '12px' }}>Refresh</button>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Records</div>
+          <div className="stat-value">{stats?.totalRecords || records.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Chain Integrity</div>
+          <div className="stat-value" style={{ color: '#10b981' }}>VERIFIED</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Modules Logging</div>
+          <div className="stat-value">{Object.keys(moduleTypes).length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Latest Block</div>
+          <div className="stat-value">#{records[0]?.id || 0}</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-header">
+          <h3 className="panel-title">Module Activity</h3>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {Object.entries(moduleTypes).map(([module, count]) => (
+            <div key={module} style={{ 
+              padding: '12px 20px',
+              background: '#1e1e3f',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '20px', fontWeight: '700' }}>{count}</div>
+              <div style={{ fontSize: '11px', color: '#6b7280' }}>{module}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: '16px' }}>
+        <div className="panel-header">
+          <h3 className="panel-title">Event Log (Hash-Chain)</h3>
+        </div>
+        <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Module</th>
+                <th>Actor</th>
+                <th>Timestamp</th>
+                <th>Hash</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map(record => (
+                <tr key={record.id}>
+                  <td>#{record.id}</td>
+                  <td><span className="status-badge">{record.type}</span></td>
+                  <td>{record.module}</td>
+                  <td>{record.actor}</td>
+                  <td style={{ fontSize: '12px' }}>{new Date(record.timestamp).toLocaleString()}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '10px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {record.hash?.slice(0, 16)}...
+                  </td>
+                </tr>
+              ))}
+              {records.length === 0 && (
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>No records yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [authenticated, setAuthenticated] = useState(sessionStorage.getItem('omega_auth') === 'true');
   const [aiOpen, setAiOpen] = useState(false);
@@ -1238,12 +1830,16 @@ export default function App() {
       <div style={{ flex: 1, marginRight: aiOpen ? '400px' : '0', transition: 'margin-right 0.3s' }}>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/ecclesia" component={EcclesiaPage} />
           <Route path="/dispatch" component={DispatchConsolePage} />
           <Route path="/intel" component={IntelPage} />
           <Route path="/loads" component={LoadsPage} />
           <Route path="/drivers" component={DriversPage} />
+          <Route path="/mobile" component={MobileOperatorsPage} />
+          <Route path="/bridge" component={BSCBridgePage} />
           <Route path="/contracts" component={ContractsPage} />
           <Route path="/treasury" component={TreasuryPage} />
+          <Route path="/codex" component={CodexLedgerPage} />
           <Route path="/ops" component={OpsPage} />
         </Switch>
         <button

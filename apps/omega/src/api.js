@@ -405,3 +405,83 @@ export async function fetchIntegratedDispatch(loadId) {
   const res = await fetch(`${API_BASE}/dispatch/integrated/${loadId}`);
   return res.json();
 }
+
+export async function fetchEcclesiaConfig() {
+  const res = await fetch(`${API_BASE}/ecclesia/config`);
+  return res.json();
+}
+
+export async function fetchEcclesiaPortals() {
+  const res = await fetch(`${API_BASE}/ecclesia/portals`);
+  return res.json();
+}
+
+export async function fetchEcclesiaMinistries() {
+  const res = await fetch(`${API_BASE}/ecclesia/ministries`);
+  return res.json();
+}
+
+export async function fetchEcclesiaAnchors(limit = 50) {
+  const res = await fetch(`${API_BASE}/ecclesia/anchors?limit=${limit}`);
+  return res.json();
+}
+
+export async function fetchEcclesiaStats() {
+  const res = await fetch(`${API_BASE}/ecclesia/stats`);
+  return res.json();
+}
+
+export async function fetchMobileOperators() {
+  const res = await fetch(`${API_BASE}/mobile/operators`);
+  return res.json();
+}
+
+export async function fetchMobileOperatorStats() {
+  const res = await fetch(`${API_BASE}/mobile/stats`);
+  return res.json();
+}
+
+export async function fetchMobileNotifications(operatorId) {
+  const res = await fetch(`${API_BASE}/mobile/operators/${operatorId}/notifications`);
+  return res.json();
+}
+
+export async function fetchBridgeChains() {
+  const res = await fetch(`${API_BASE}/bridge/chains`);
+  return res.json();
+}
+
+export async function fetchBridgeTransactions() {
+  const res = await fetch(`${API_BASE}/bridge/transactions`);
+  return res.json();
+}
+
+export async function fetchBridgeStats() {
+  const res = await fetch(`${API_BASE}/bridge/stats`);
+  return res.json();
+}
+
+export async function fetchBuybackTiers() {
+  const res = await fetch(`${API_BASE}/bridge/buyback/tiers`);
+  return res.json();
+}
+
+export async function fetchBuybackTransactions() {
+  const res = await fetch(`${API_BASE}/bridge/buyback/transactions`);
+  return res.json();
+}
+
+export async function fetchFiatProviders() {
+  const res = await fetch(`${API_BASE}/bridge/fiat/providers`);
+  return res.json();
+}
+
+export async function fetchCodexRecords(limit = 100) {
+  const res = await fetch(`${API_BASE}/codex?limit=${limit}`);
+  return res.json();
+}
+
+export async function fetchCodexStats() {
+  const res = await fetch(`${API_BASE}/codex/stats`);
+  return res.json();
+}

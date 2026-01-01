@@ -29,7 +29,21 @@ The platform is a monorepo comprising multiple services and packages.
 - **Web3 DeFi:** Wallet connection, BSC token management (transfers, minting, blacklisting), on-chain document verification, network detection, real-time balance, transaction logging, and multi-token trading.
 - **Logistics Core:** `FreightEngine` supports various modes (GROUND, AIR, OCEAN, COURIER) and regions.
 - **Advanced Systems:** Includes `TreasuryEngine` (token escrow), `DevineCredit` (driver credit), `AI Dispatch` (driver suggestions, profitability), `Loyalty System` (tiered progression), `Compliance Engine`, `Risk Radar` (6-category scoring), and `Security Layer` (rate limiting, anomaly detection).
-- **Portals:** `Single Operator Portal` with AI guidance and `Omega Portal` for leadership.
+- **Portals:** `Single Operator Portal` with AI guidance and `Omega Portal` as the central command center.
+- **Omega Portal Command Center:** Full command center at `/apps/omega/` integrating all Dynasty operations:
+  - Dashboard with real-time metrics
+  - Ecclesia integration with embedded codex-ecclesia-public.com portals (Omega, Trustees, Heirs, Logistics, BSC, CodexChain)
+  - Dispatch Console for AI-powered driver assignment
+  - Live Intel for market/weather/traffic monitoring
+  - Mobile Operators management (6 operator types, 8 notification types)
+  - BSC Bridge & Buyback (8 blockchains, 5 tiers, 6 fiat providers)
+  - Codex Ledger for immutable event log viewing
+  - Ops Control for mode/region activation
+- **Codex Ecclesia Integration:** Full integration with codex-ecclesia-public.com as governance command center:
+  - QFS-Compatible and ISO-20022 ready
+  - 6 Ministries (Treasury, Logistics, Commerce, Justice, Intelligence, Technology)
+  - 8 Scroll Types (Decree, Contract, Charter, Amendment, Record, Verification, Transaction, Dispatch)
+  - Event anchoring to CodexChain with database persistence
 - **Governance:** On-chain constitution, ministries, roles, and driver charter.
 - **Live Intelligence:** Real-time data for dispatch adjustments.
 - **AI-Powered Logistics OS:** New packages include `ai-contract-capture`, `knowledge-corpus`, `ai-dispatch-brain`, `enhanced-loadboard`, and `cross-chain-evolution`.

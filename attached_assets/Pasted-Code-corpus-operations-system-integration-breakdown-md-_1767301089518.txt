@@ -1,0 +1,340 @@
+Code
+/corpus/operations/system_integration_breakdown.md
+/corpus/codex/codex_event_taxonomy.md
+I’ll deliver them separately so you can paste each one into its own file.
+
+✅ FILE 1: system_integration_breakdown.md
+(Place in: /corpus/operations/system_integration_breakdown.md)
+markdown
+# Dynasty OS — System Integration Breakdown
+## How the Load Board, Dispatch Engine, Driver App, and Frontend Work Together
+
+This document explains how the four core components of the Dynasty OS interact to form a unified logistics operating system. It describes the data flow, event flow, and system responsibilities across the platform.
+
+---
+
+# 1. System Overview
+
+The Dynasty OS is composed of four primary operational components:
+
+1. **Load Board** — Shipper and Ops interface for load creation and management  
+2. **Dispatch Engine** — AI + human hybrid assignment system  
+3. **Driver App** — Execution layer for drivers and couriers  
+4. **Frontend / Web Console** — Unified UI for shippers, ops, dispatch, and admin  
+
+All components communicate through:
+
+- Dynasty OS API  
+- Codex Event Logging  
+- Treasury & Compliance Services  
+
+Together, they form a closed operational loop:
+
+Load → Dispatch → Driver → Delivery → Treasury → Codex → AI → Load
+
+Code
+
+---
+
+# 2. Load Board (Shippers + Ops)
+
+### Purpose
+The Load Board is the operational hub for creating, viewing, and managing loads.
+
+### Key Functions
+- Create new loads  
+- View available loads  
+- Filter by mode, region, status  
+- View compliance flags  
+- Trigger dispatch suggestions  
+
+### Data Flow
+1. Shipper creates a load → `/loads`  
+2. Load appears on Load Board  
+3. Ops requests AI dispatch suggestion  
+4. Codex logs: `LOAD_CREATED`, `LOAD_UPDATED`
+
+---
+
+# 3. Dispatch Engine (AI + Human)
+
+### Purpose
+Assign the best driver or courier to each load.
+
+### Key Functions
+- AI scoring  
+- Eligibility filtering  
+- Backup driver suggestions  
+- Manual override  
+- Assignment confirmation  
+
+### Dispatch Flow
+1. Load Board triggers AI suggestion  
+2. AI returns:
+   - primary driver  
+   - backup drivers  
+   - score breakdown  
+3. Dispatcher accepts or overrides  
+4. Assignment sent to Driver App  
+5. Codex logs:
+   - `DISPATCH_SUGGESTED`  
+   - `DISPATCH_ASSIGNED`  
+   - `DISPATCH_OVERRIDE`
+
+---
+
+# 4. Driver App (Execution Layer)
+
+### Purpose
+Drivers execute the work and update real-time status.
+
+### Key Functions
+- View assigned loads  
+- Update milestones  
+- Upload POD  
+- View earnings  
+- Access credit  
+- Track loyalty  
+
+### Driver Flow
+1. Driver receives assignment  
+2. Driver updates:
+   - `DRIVER_ARRIVED_PICKUP`  
+   - `DRIVER_LOADED`  
+   - `LOAD_IN_TRANSIT`  
+   - `DRIVER_ARRIVED_DELIVERY`  
+   - `POD_UPLOADED`  
+3. Treasury triggers payout  
+4. Codex logs all events
+
+---
+
+# 5. Frontend / Web Console
+
+### Purpose
+Unified interface for all user types.
+
+### Key Functions
+- Load Board UI  
+- Dispatch Console  
+- Ops Global Map  
+- Driver Management  
+- Partner Management  
+- Treasury Dashboard  
+- Compliance Dashboard  
+
+### Flow
+1. User logs in  
+2. Frontend calls Dynasty OS API  
+3. Data displayed in tables, cards, maps, timelines  
+4. User actions trigger API calls  
+5. API triggers Codex events
+
+---
+
+# 6. Full System Loop
+
+### Step-by-step integration:
+
+1. **Load Created** → Load Board updates → Codex logs  
+2. **Dispatch Triggered** → AI suggests → Ops assigns  
+3. **Driver Executes** → updates milestones → uploads POD  
+4. **Delivery Completed** → Treasury calculates payout  
+5. **Treasury Updates** → wallet, credit, rewards  
+6. **Codex Anchors** → full operational memory  
+7. **AI Improves** → learns from Codex data  
+
+---
+
+# 7. System Diagram (Text-Based)
+
++------------------+        +------------------+        +------------------+
+|     Load Board   | -----> |   Dispatch AI    | -----> |    Driver App    |
+| (Shippers / Ops) |        | (Scoring Engine) |        | (Execution Layer)|
++------------------+        +------------------+        +------------------+
+^                           |                           |
+|                           v                           v
+|                    +------------------+        +------------------+
+|                    |     Treasury     | <----- |   Delivery/POD   |
+|                    | (Payout/Credit)  |        +------------------+
+|                    +------------------+
+|                           |
+|                           v
++-------------------+------------------------------+
+|           Codex             |
+| (Event Log & Audit Spine)   |
++------------------------------+
+
+Code
+
+---
+
+# 8. Summary
+
+The Load Board, Dispatch Engine, Driver App, and Frontend form a unified operational system:
+
+- Load Board = visibility  
+- Dispatch = intelligence  
+- Driver App = execution  
+- Treasury = financial flow  
+- Codex = memory  
+
+This integration enables the Dynasty OS to operate as a complete logistics operating system.
+
+---
+
+# END OF FILE
+✅ FILE 2: codex_event_taxonomy.md
+(Place in: /corpus/codex/codex_event_taxonomy.md)
+markdown
+# Dynasty OS — Codex Event Taxonomy
+## The Structured Event Dictionary for the Dynasty OS
+
+Codex is the event spine of the Dynasty OS.  
+Every action in the system emits a structured event that becomes part of the permanent operational record.
+
+This document defines the **event categories**, **event names**, and **intended usage**.
+
+---
+
+# 1. Event Categories
+
+Codex events are grouped into seven major categories:
+
+1. **Load Events**  
+2. **Dispatch Events**  
+3. **Driver Events**  
+4. **Compliance Events**  
+5. **Treasury Events**  
+6. **Governance Events**  
+7. **Codex Events**  
+
+Each category contains multiple event types.
+
+---
+
+# 2. Load Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `LOAD_CREATED` | A new load is created by shipper or ops. |
+| `LOAD_UPDATED` | Load details are modified. |
+| `LOAD_CANCELLED` | Load is cancelled before assignment. |
+| `LOAD_IN_TRANSIT` | Load is actively moving. |
+| `LOAD_DELIVERED` | Delivery completed. |
+| `LOAD_EXCEPTION` | Delay, damage, or operational issue. |
+
+---
+
+# 3. Dispatch Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `DISPATCH_SUGGESTED` | AI provides driver suggestions. |
+| `DISPATCH_ASSIGNED` | Driver is assigned to load. |
+| `DISPATCH_OVERRIDE` | Human overrides AI suggestion. |
+| `DISPATCH_ESCALATED` | Dispatch requires higher-level review. |
+
+---
+
+# 4. Driver Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `DRIVER_ARRIVED_PICKUP` | Driver reaches pickup location. |
+| `DRIVER_LOADED` | Cargo loaded. |
+| `DRIVER_DEPARTED` | Driver leaves pickup. |
+| `DRIVER_ARRIVED_DELIVERY` | Driver reaches delivery location. |
+| `POD_UPLOADED` | Proof of delivery submitted. |
+
+---
+
+# 5. Compliance Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `COMPLIANCE_CHECKED` | Compliance rules evaluated. |
+| `DOCUMENTATION_VERIFIED` | Required documents validated. |
+| `SAFETY_FLAGGED` | Safety issue detected. |
+| `RISK_SCORE_UPDATED` | Risk score recalculated. |
+
+---
+
+# 6. Treasury Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `PAYOUT_PREVIEWED` | Treasury calculates expected payout. |
+| `PAYOUT_ISSUED` | Driver payout executed. |
+| `CREDIT_ADJUSTED` | Credit balance updated. |
+| `REWARD_GRANTED` | Loyalty or performance reward issued. |
+
+---
+
+# 7. Governance Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `MODE_ACTIVATED` | A mode (GROUND/AIR/OCEAN/COURIER) is activated. |
+| `REGION_ACTIVATED` | A region becomes operational. |
+| `NODE_ACTIVATED` | A city/port/airport node is activated. |
+| `GLOBAL_LAUNCH_TRIGGERED` | A major expansion milestone. |
+
+---
+
+# 8. Codex Events
+
+| Event Name | Description |
+|-----------|-------------|
+| `CODEX_RECORD_CREATED` | A new event is stored. |
+| `CODEX_ANCHORED` | A batch of events is anchored for integrity. |
+
+---
+
+# 9. Event Structure (Recommended)
+
+Each event should follow a consistent structure:
+
+```json
+{
+  "event_id": "uuid",
+  "event_type": "LOAD_CREATED",
+  "timestamp": "ISO-8601",
+  "actor": "user/service",
+  "entity": "load/driver/etc",
+  "entity_id": "id",
+  "payload": { ... },
+  "metadata": { ... }
+}
+10. Purpose of the Taxonomy
+This taxonomy ensures:
+
+consistency
+
+auditability
+
+transparency
+
+AI training quality
+
+operational clarity
+
+Codex is the memory of the Dynasty OS.
+
+END OF FILE
+Code
+
+---
+
+King, both files are now **fully ready for your repo**.
+
+If you want next:
+
+- **codex_schema.md**  
+- **anchoring_cadence.md**  
+- **load_board_spec.md**  
+- **dispatch_engine_spec.md**  
+- **driver_app_flows.md**  
+- **treasury_constitution.md**  
+
+Just tell me and I’ll generate them.
