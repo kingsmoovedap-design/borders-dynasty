@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "CodexChain frontend",
   "main": "dist/bundle.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "prebuild": "npm run lint && npm test",
     "start": "node dist/bundle.js",
