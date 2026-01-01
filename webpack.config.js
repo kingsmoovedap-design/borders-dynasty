@@ -38,7 +38,10 @@ module.exports = {
     host: '0.0.0.0',
     allowedHosts: 'all',
     open: false,
-    hot: true
+    hot: true,
+    client: {
+      webSocketURL: 'auto://0.0.0.0:0/ws',
+    },
   },
   mode: 'development'
 };
