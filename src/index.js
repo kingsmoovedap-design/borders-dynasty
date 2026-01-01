@@ -129,6 +129,13 @@ async function init() {
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
         userAddressSpan.innerText = address;
+        
+        // Auto-detect if this is the predefined Sovereign Wallet
+        const SOVEREIGN_WALLET = '0x...your...address...';
+        if (address.toLowerCase() === SOVEREIGN_WALLET.toLowerCase()) {
+            logEvent('👑 Sovereign Administrator identity recognized.');
+        }
+        
         connectBtn.style.display = 'none';
         coinInfo.style.display = 'block';
         logEvent(`Sovereign access granted to ${address.substring(0, 8)}...`);
