@@ -134,3 +134,104 @@ export async function markDelivered(loadId) {
   });
   return res.json();
 }
+
+export async function fetchSecurityStatus() {
+  const res = await fetch(`${API_BASE}/security/status`);
+  return res.json();
+}
+
+export async function fetchSecurityEvents(limit = 50) {
+  const res = await fetch(`${API_BASE}/security/events?limit=${limit}`);
+  return res.json();
+}
+
+export async function blockIP(ip, reason) {
+  const res = await fetch(`${API_BASE}/security/block-ip`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ip, reason })
+  });
+  return res.json();
+}
+
+export async function unblockIP(ip) {
+  const res = await fetch(`${API_BASE}/security/unblock-ip`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ip })
+  });
+  return res.json();
+}
+
+export async function fetchDispatchPartners() {
+  const res = await fetch(`${API_BASE}/devine-dispatch/partners`);
+  return res.json();
+}
+
+export async function gatherExternalContracts(partnerId = null) {
+  const res = await fetch(`${API_BASE}/devine-dispatch/gather`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(partnerId ? { partnerId } : {})
+  });
+  return res.json();
+}
+
+export async function fetchGatheredContracts(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.mode) params.set('mode', filters.mode);
+  if (filters.redirected !== undefined) params.set('redirected', filters.redirected);
+  if (filters.minScore) params.set('minScore', filters.minScore);
+  const res = await fetch(`${API_BASE}/devine-dispatch/contracts?${params}`);
+  return res.json();
+}
+
+export async function fetchQualifiedContracts() {
+  const res = await fetch(`${API_BASE}/devine-dispatch/qualified`);
+  return res.json();
+}
+
+export async function convertExternalContract(contractId) {
+  const res = await fetch(`${API_BASE}/devine-dispatch/convert/${contractId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return res.json();
+}
+
+export async function fetchDispatchStats() {
+  const res = await fetch(`${API_BASE}/devine-dispatch/stats`);
+  return res.json();
+}
+
+export async function fetchTokenTreasuryStats() {
+  const res = await fetch(`${API_BASE}/token/treasury/stats`);
+  return res.json();
+}
+
+export async function fetchTokenTransactions(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.type) params.set('type', filters.type);
+  if (filters.loadId) params.set('loadId', filters.loadId);
+  if (filters.limit) params.set('limit', filters.limit);
+  const res = await fetch(`${API_BASE}/token/transactions?${params}`);
+  return res.json();
+}
+
+export async function depositEscrow(loadId, amount, depositorAddress) {
+  const res = await fetch(`${API_BASE}/token/escrow/deposit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ loadId, amount, depositorAddress })
+  });
+  return res.json();
+}
+
+export async function processTokenPayout(loadId, driverWallet) {
+  const res = await fetch(`${API_BASE}/token/payout/${loadId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driverWallet })
+  });
+  return res.json();
+}

@@ -85,6 +85,29 @@ Regions: NORTH_AMERICA, EUROPE, ASIA_PACIFIC, LATAM
 - `GET /contracts/:id` - Get contract by ID
 - `GET /contracts/load/:loadId` - Get contract for a specific load
 
+## Devine Dispatch API Endpoints (External Contract Gathering)
+- `GET /devine-dispatch/partners` - List external loadboard partners and status
+- `POST /devine-dispatch/gather` - Gather contracts from all external loadboards
+- `GET /devine-dispatch/contracts` - List gathered contracts with filters
+- `GET /devine-dispatch/qualified` - Get Dynasty-qualified contracts (score >= 60, redirectable)
+- `POST /devine-dispatch/convert/:contractId` - Convert external contract to Dynasty load
+- `GET /devine-dispatch/stats` - Dispatch statistics by mode
+
+## Security API Endpoints
+- `GET /security/status` - Security status, blocked IPs, protection config
+- `GET /security/events` - Recent security events
+- `POST /security/block-ip` - Manually block IP (body: { ip, reason })
+- `POST /security/unblock-ip` - Unblock IP (body: { ip })
+
+## Token Integration API Endpoints
+- `POST /token/escrow/deposit` - Deposit BSC to escrow (body: { loadId, amount, depositorAddress })
+- `GET /token/escrow/:loadId` - Get escrow balance for load
+- `POST /token/payout/:loadId` - Process delivery payout (body: { driverWallet })
+- `POST /token/credit/advance` - Issue credit advance with token (body: { driverId, amount, driverWallet })
+- `POST /token/credit/repay` - Process credit repayment (body: { driverId, amount, driverWallet })
+- `GET /token/transactions` - List token transactions with filters
+- `GET /token/treasury/stats` - Treasury statistics and balances
+
 ## Logistics API Endpoints
 - `GET /health` - Health check with supported modes
 - `GET /loads` - List all loads
