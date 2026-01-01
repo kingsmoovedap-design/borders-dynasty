@@ -77,6 +77,14 @@ const loyalty = require("../../../packages/loyalty/index.cjs");
 const compliance = require("../../../packages/compliance/index.cjs");
 const riskRadar = require("../../../packages/risk-radar/index.cjs");
 const rewards = require("../../../packages/rewards/index.cjs");
+const { GovernanceClient, GOVERNANCE_CORPUS, TREASURY_CONSTITUTION, DRIVER_CHARTER, CODEX_EVENT_TAXONOMY } = require("../../../packages/ecclesia-client/governance.cjs");
+const { SingleOperatorPortal, OPERATOR_MODES, AI_ACTIONS } = require("../../../packages/single-operator/index.cjs");
+const securityLayer = require("../../../packages/security-layer/index.cjs");
+const logisticsModes = require("../../../packages/logistics-modes/index.cjs");
+const tokenTrading = require("../../../packages/token-trading/index.cjs");
+
+const governanceClient = new GovernanceClient();
+const operatorPortal = new SingleOperatorPortal();
 
 startOrchestrator(60000);
 
@@ -1489,15 +1497,7 @@ app.get("/governance/constitution", (req, res) => {
   res.json({
     owner: "Private Ecclesia Trust",
     version: "1.0.0",
-    articles: [
-      { id: 1, name: "Sovereignty of the Codex", principle: "Codex is the supreme ledger. Every action becomes a Codex event." },
-      { id: 2, name: "Separation of Powers", principle: "Four branches: Operational, Treasury, Compliance, Governance (Omega)" },
-      { id: 3, name: "Activation Authority", principle: "Only Omega may activate modes, regions, and nodes" },
-      { id: 4, name: "Dispatch Integrity", principle: "Dispatch decisions must be explainable, auditable, reversible" },
-      { id: 5, name: "Driver & Courier Rights", principle: "Transparent payouts, credit access, token rewards, safety protections" },
-      { id: 6, name: "Treasury Transparency", principle: "All treasury flows must be deterministic and anchored in Codex" },
-      { id: 7, name: "Continuous Improvement", principle: "The Dynasty OS evolves through Codex insights and AI learning" }
-    ],
+    ...governanceClient.getConstitution(),
     ipOwnership: {
       sourceCode: "Private Ecclesia Trust",
       brand: "Private Ecclesia Trust",
@@ -1505,6 +1505,226 @@ app.get("/governance/constitution", (req, res) => {
       tokenLogic: "Private Ecclesia Trust",
       likeness: "Private Ecclesia Trust"
     }
+  });
+});
+
+app.get("/governance/ministries", (req, res) => {
+  res.json(governanceClient.getMinistries());
+});
+
+app.get("/governance/roles", (req, res) => {
+  res.json(governanceClient.getRoles());
+});
+
+app.get("/governance/treasury-constitution", (req, res) => {
+  res.json(governanceClient.getTreasuryConstitution());
+});
+
+app.get("/governance/driver-charter", (req, res) => {
+  res.json(governanceClient.getDriverCharter());
+});
+
+app.get("/governance/codex-taxonomy", (req, res) => {
+  res.json(governanceClient.getCodexTaxonomy());
+});
+
+app.get("/governance/status", async (req, res) => {
+  res.json(await governanceClient.getGovernanceStatus());
+});
+
+app.get("/operator/modes", (req, res) => {
+  res.json(operatorPortal.getModes());
+});
+
+app.get("/operator/current", (req, res) => {
+  res.json(operatorPortal.getCurrentMode());
+});
+
+app.post("/operator/mode", authMiddleware(), (req, res) => {
+  const { mode } = req.body;
+  if (!mode) return res.status(400).json({ error: "mode required" });
+  res.json(operatorPortal.setMode(mode));
+});
+
+app.get("/operator/actions", authMiddleware(), (req, res) => {
+  const mode = req.query.mode;
+  res.json(mode ? operatorPortal.getAvailableActions(mode) : operatorPortal.getAllActions());
+});
+
+app.post("/operator/ai-query", authMiddleware(), async (req, res) => {
+  const { query, context } = req.body;
+  if (!query) return res.status(400).json({ error: "query required" });
+  
+  const response = await operatorPortal.processAIQuery(query, context || {});
+  res.json(response);
+});
+
+app.get("/operator/session", (req, res) => {
+  res.json(operatorPortal.getSessionContext());
+});
+
+app.get("/logistics/modes", (req, res) => {
+  res.json({
+    modes: logisticsModes.LOGISTICS_MODES,
+    readiness: logisticsModes.getModeReadiness()
+  });
+});
+
+app.get("/logistics/modes/:modeId", (req, res) => {
+  const mode = logisticsModes.getModeConfig(req.params.modeId);
+  if (!mode) return res.status(404).json({ error: "Mode not found" });
+  res.json(mode);
+});
+
+app.get("/logistics/regions", (req, res) => {
+  res.json({
+    regions: logisticsModes.REGION_CONFIGS,
+    readiness: logisticsModes.getRegionReadiness()
+  });
+});
+
+app.get("/logistics/regions/:regionId", (req, res) => {
+  const region = logisticsModes.getRegionConfig(req.params.regionId);
+  if (!region) return res.status(404).json({ error: "Region not found" });
+  res.json(region);
+});
+
+app.get("/logistics/cargo-types", (req, res) => {
+  res.json(logisticsModes.CARGO_TYPES);
+});
+
+app.get("/logistics/matrix", (req, res) => {
+  res.json(logisticsModes.getFullOperationalMatrix());
+});
+
+app.post("/logistics/quote", (req, res) => {
+  const { mode, distance, weight, cargoType } = req.body;
+  if (!mode || !distance) return res.status(400).json({ error: "mode and distance required" });
+  
+  const quote = logisticsModes.calculateBaseRate(mode, distance, weight || 0, cargoType || "GENERAL");
+  if (!quote) return res.status(400).json({ error: "Invalid mode" });
+  
+  res.json(quote);
+});
+
+app.get("/logistics/certifications/:modeId", (req, res) => {
+  const cargoType = req.query.cargoType || "GENERAL";
+  const certs = logisticsModes.getRequiredCertifications(req.params.modeId, cargoType);
+  res.json({ mode: req.params.modeId, cargoType, certifications: certs });
+});
+
+app.get("/trading/tokens", (req, res) => {
+  res.json(tokenTrading.getSupportedTokens());
+});
+
+app.get("/trading/pairs", (req, res) => {
+  res.json(tokenTrading.getTradingPairs());
+});
+
+app.get("/trading/quote", (req, res) => {
+  const { from, to, amount } = req.query;
+  if (!from || !to || !amount) return res.status(400).json({ error: "from, to, and amount required" });
+  
+  const quote = tokenTrading.getExchangeRate(from, to, parseFloat(amount));
+  res.json(quote);
+});
+
+app.post("/trading/swap", authMiddleware(), async (req, res) => {
+  const { fromToken, toToken, amount, walletAddress } = req.body;
+  if (!fromToken || !toToken || !amount || !walletAddress) {
+    return res.status(400).json({ error: "fromToken, toToken, amount, and walletAddress required" });
+  }
+  
+  const order = tokenTrading.createSwapOrder(fromToken, toToken, amount, walletAddress);
+  
+  if (order.success) {
+    await codexLog("SWAP_ORDER_CREATED", "TOKEN_TRADING", {
+      orderId: order.order.id,
+      fromToken,
+      toToken,
+      amount,
+      walletAddress,
+      actor: req.user?.role || "authenticated"
+    }, "trading-system");
+  }
+  
+  res.json(order);
+});
+
+app.post("/trading/execute/:orderId", authMiddleware(), async (req, res) => {
+  const { txHash } = req.body;
+  if (!txHash) return res.status(400).json({ error: "txHash required" });
+  
+  const result = tokenTrading.executeSwap(req.params.orderId, txHash);
+  
+  if (result.success) {
+    await codexLog("SWAP_EXECUTED", "TOKEN_TRADING", {
+      orderId: req.params.orderId,
+      txHash,
+      actor: req.user?.role || "authenticated"
+    }, "trading-system");
+  }
+  
+  res.json(result);
+});
+
+app.delete("/trading/swap/:orderId", authMiddleware(), (req, res) => {
+  res.json(tokenTrading.cancelSwap(req.params.orderId));
+});
+
+app.get("/trading/history", (req, res) => {
+  const filters = {
+    walletAddress: req.query.wallet,
+    fromToken: req.query.from,
+    toToken: req.query.to,
+    status: req.query.status,
+    limit: parseInt(req.query.limit) || 100
+  };
+  res.json(tokenTrading.getTradeHistory(filters));
+});
+
+app.get("/trading/liquidity", (req, res) => {
+  res.json(tokenTrading.getLiquidityInfo());
+});
+
+app.get("/trading/market", (req, res) => {
+  res.json(tokenTrading.getMarketData());
+});
+
+app.get("/trading/stats", (req, res) => {
+  res.json(tokenTrading.getTradingStats());
+});
+
+app.get("/trading/upgrade-specs", (req, res) => {
+  res.json(tokenTrading.getUpgradeSpecs());
+});
+
+app.get("/security/advanced-status", authMiddleware('*'), (req, res) => {
+  res.json(securityLayer.getSecurityStatus());
+});
+
+app.post("/security/check-rate-limit", authMiddleware('*'), (req, res) => {
+  const { ip, endpoint } = req.body;
+  if (!ip) return res.status(400).json({ error: "ip required" });
+  res.json(securityLayer.checkRateLimit(ip, endpoint || "default"));
+});
+
+app.post("/security/detect-anomaly", authMiddleware('*'), (req, res) => {
+  const { ip, requestPattern } = req.body;
+  if (!ip || !requestPattern) return res.status(400).json({ error: "ip and requestPattern required" });
+  res.json(securityLayer.detectAnomaly(ip, requestPattern));
+});
+
+app.post("/security/generate-api-key", authMiddleware('*'), (req, res) => {
+  const { partnerId } = req.body;
+  if (!partnerId) return res.status(400).json({ error: "partnerId required" });
+  const apiKeyResult = securityLayer.generateAPIKey(partnerId);
+  res.json({
+    keyPrefix: apiKeyResult.keyPrefix,
+    partnerId: apiKeyResult.partnerId,
+    createdAt: apiKeyResult.createdAt,
+    message: "Full key returned once - store securely",
+    key: apiKeyResult.key
   });
 });
 
