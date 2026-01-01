@@ -1,4 +1,4 @@
-const { ethers, upgrades } = require('hardhat');
+const { ethers, upgrades, run } = require('hardhat');
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -15,7 +15,7 @@ async function main() {
   if (process.env.ETHERSCAN_API_KEY) {
     console.log('Initiating Etherscan verification...');
     try {
-      await run("verify:verify", {
+      await run('verify:verify', {
         address: address,
         constructorArguments: [],
       });

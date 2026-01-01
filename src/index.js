@@ -187,11 +187,11 @@ async function init() {
         
         // Initialize Contract Instance
         const abi = [
-            "function balanceOf(address) view returns (uint256)",
-            "function decimals() view returns (uint8)",
-            "function symbol() view returns (string)",
-            "function mint(address to, uint256 amount) public",
-            "function setBlacklist(address account, bool status) public"
+            'function balanceOf(address) view returns (uint256)',
+            'function decimals() view returns (uint8)',
+            'function symbol() view returns (string)',
+            'function mint(address to, uint256 amount) public',
+            'function setBlacklist(address account, bool status) public'
         ];
         const bscContract = new ethers.Contract(BSC_CONTRACT_ADDRESS, abi, signer);
         
