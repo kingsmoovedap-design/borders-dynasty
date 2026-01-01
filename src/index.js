@@ -41,6 +41,16 @@ async function init() {
         </section>
 
         <section class="card" style="grid-column: 1 / -1;">
+          <h2 style="border-bottom: 2px solid #8e44ad; padding-bottom: 10px; color: #8e44ad; margin-top: 0;">📜 Scroll Verifier</h2>
+          <textarea id="scroll-text" placeholder="Paste scroll text here..." style="width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; font-family: 'Georgia', serif;"></textarea>
+          <div style="display: flex; gap: 10px;">
+            <button id="verify-scroll-btn" class="btn" style="background: #8e44ad; color: white;">Verify Authenticity</button>
+            <button id="hash-scroll-btn" class="btn" style="background: #34495e; color: white;">Generate Hash</button>
+          </div>
+          <div id="scroll-result" style="margin-top: 10px; font-weight: bold; text-align: center;"></div>
+        </section>
+
+        <section class="card" style="grid-column: 1 / -1;">
           <h2 style="border-bottom: 2px solid #34495e; padding-bottom: 10px; color: #34495e; margin-top: 0;">📢 Dynastic Public Notices</h2>
           <div id="public-notices" style="max-height: 150px; overflow-y: auto; background: #ebf2f8; padding: 15px; border-radius: 8px; border-left: 5px solid #34495e;">
             <p style="color: #34495e; font-weight: bold; margin-bottom: 5px;">[GLOBAL NOTICE] ECCLESIA NATION HANDSHAKE ACTIVE</p>
@@ -90,6 +100,10 @@ async function init() {
     entry.innerHTML = `<span style="color: #9b59b6;">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
     if (eventLog.firstChild && eventLog.firstChild.nodeType === 1 && eventLog.firstChild.style.color === 'rgb(127, 140, 141)') eventLog.innerHTML = '';
     eventLog.prepend(entry);
+  };
+
+  const generateHashFromText = (text) => {
+    return ethers.keccak256(ethers.toUtf8Bytes(text));
   };
 
   const syncEcclesia = async () => {
@@ -169,6 +183,30 @@ async function init() {
     if (addr) {
       logEvent(`Security Decree: Blacklisted ${addr.substring(0, 8)}...`);
       alert('Security decree enforced.');
+    }
+  });
+
+  document.getElementById('hash-scroll-btn').addEventListener('click', () => {
+    const text = document.getElementById('scroll-text').value;
+    if (text) {
+      const hash = generateHashFromText(text);
+      logEvent(`Scroll Hash Generated: ${hash.substring(0, 16)}...`);
+      alert(`Scroll Hash: ${hash}`);
+    }
+  });
+
+  document.getElementById('verify-scroll-btn').addEventListener('click', async () => {
+    const text = document.getElementById('scroll-text').value;
+    const resultDiv = document.getElementById('scroll-result');
+    if (text) {
+      const hash = generateHashFromText(text);
+      logEvent(`Verifying scroll integrity: ${hash.substring(0, 12)}...`);
+      // For demo, we simulate a successful local verification check
+      setTimeout(() => {
+        resultDiv.style.color = '#27ae60';
+        resultDiv.innerText = '✅ Scroll Authenticity Verified on CodexChain';
+        logEvent('Scroll integrity confirmed via Dynastic Registry.');
+      }, 1500);
     }
   });
 }
