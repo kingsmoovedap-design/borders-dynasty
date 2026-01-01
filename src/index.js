@@ -80,7 +80,7 @@ async function init() {
     entry.style.margin = '5px 0';
     entry.style.borderBottom = '1px solid #eee';
     entry.innerHTML = `<span style="color: #9b59b6;">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-    if (eventLog.firstChild && eventLog.firstChild.style.color === 'rgb(127, 140, 141)') eventLog.innerHTML = '';
+    if (eventLog.firstChild && eventLog.firstChild.nodeType === 1 && eventLog.firstChild.style.color === 'rgb(127, 140, 141)') eventLog.innerHTML = '';
     eventLog.prepend(entry);
   };
 
