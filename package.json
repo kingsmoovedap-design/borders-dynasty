@@ -15,7 +15,10 @@
     "test:health": "node test/health.test.js",
     "lint": "eslint . --ext .js --ignore-pattern dist/",
     "hardhat": "hardhat",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "compile": "hardhat compile",
+    "sync:abis": "node scripts/syncAbis.js",
+    "compile:sync": "npm run compile && npm run sync:abis"
   },
   "repository": {
     "type": "git",

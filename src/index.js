@@ -1,7 +1,14 @@
 import { ethers } from 'ethers';
+import BordersSovereignCoin from './abis/BordersSovereignCoin.json';
+import ScrollHashRegistry from './abis/ScrollHashRegistry.json';
+import DynasticIdentity from './abis/DynasticIdentity.json';
 
 // Contracts address (Placeholder - update after deployment)
 const BSC_CONTRACT_ADDRESS = '0x12efC9a5D115AE7833c9a6D79f1B3BA18Cde817c';
+
+const coinAbi = BordersSovereignCoin.abi;
+const registryAbi = ScrollHashRegistry.abi;
+const identityAbi = DynasticIdentity.abi;
 
 async function init() {
   const app = document.getElementById('app');
@@ -185,15 +192,8 @@ async function init() {
             logEvent('👑 Sovereign Administrator identity recognized.');
         }
         
-        // Initialize Contract Instance
-        const abi = [
-            'function balanceOf(address) view returns (uint256)',
-            'function decimals() view returns (uint8)',
-            'function symbol() view returns (string)',
-            'function mint(address to, uint256 amount) public',
-            'function setBlacklist(address account, bool status) public'
-        ];
-        const bscContract = new ethers.Contract(BSC_CONTRACT_ADDRESS, abi, signer);
+        // Initialize Contract Instance using imported ABI
+        const bscContract = new ethers.Contract(BSC_CONTRACT_ADDRESS, coinAbi, signer);
         
         // Fetch Balance
         const balance = await bscContract.balanceOf(address);
