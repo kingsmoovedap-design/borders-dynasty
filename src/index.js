@@ -175,6 +175,38 @@ async function init() {
         </section>
 
         <section class="card" style="grid-column: 1 / -1;">
+          <h2 style="border-bottom: 2px solid #16a085; padding-bottom: 10px; color: #16a085; margin-top: 0;">Operator Console - Create Load</h2>
+          <p style="color: #7f8c8d; margin-bottom: 15px;">Create freight loads and optionally require BSC token deposit</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Origin</label>
+              <input type="text" id="load-origin" placeholder="e.g., Los Angeles, CA">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Destination</label>
+              <input type="text" id="load-destination" placeholder="e.g., Phoenix, AZ">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">BSC Deposit (Optional)</label>
+              <input type="number" id="load-deposit" placeholder="0" step="0.01" min="0">
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+            <button id="create-load-btn" class="btn" style="background: linear-gradient(135deg, #16a085, #1abc9c); color: white; flex: 1; min-width: 200px;">Create Load</button>
+            <button id="create-load-with-deposit-btn" class="btn" style="background: linear-gradient(135deg, #e67e22, #f39c12); color: white; flex: 1; min-width: 200px;">Create Load + BSC Deposit</button>
+          </div>
+          <div id="load-result" style="margin-top: 15px; display: none;"></div>
+        </section>
+
+        <section class="card" style="grid-column: 1 / -1;">
+          <h2 style="border-bottom: 2px solid #1abc9c; padding-bottom: 10px; color: #1abc9c; margin-top: 0;">Active Loads</h2>
+          <button id="refresh-loads-btn" class="btn" style="background: #ecf0f1; color: #2c3e50; margin-bottom: 15px;">Refresh Loads</button>
+          <div id="loads-list" style="background: #fafafa; padding: 15px; border-radius: 8px; min-height: 100px;">
+            <p style="color: #7f8c8d; margin: 0; text-align: center;">Click refresh to load active shipments...</p>
+          </div>
+        </section>
+
+        <section class="card" style="grid-column: 1 / -1;">
           <h2 style="border-bottom: 2px solid #e67e22; padding-bottom: 10px; color: #e67e22; margin-top: 0;">Transaction Log</h2>
           <div id="event-log" style="max-height: 250px; overflow-y: auto; background: #fafafa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em;">
             <p style="color: #7f8c8d; margin: 0;">Waiting for activity...</p>
@@ -486,6 +518,156 @@ async function init() {
       resultDiv.innerHTML = `<strong style="color: #27ae60;">Document Verified</strong><br>Hash: ${hash}`;
       logEvent('Document authenticity verified', 'success');
     }, 1500);
+  });
+
+  const API_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000' 
+    : `${window.location.origin.replace(':5000', ':3000')}`;
+  const ESCROW_ADDRESS = '0xE89fDED72D0D83De3421C6642FA035ebE197804f';
+
+  const renderLoads = (loads) => {
+    const listEl = document.getElementById('loads-list');
+    if (!loads || loads.length === 0) {
+      listEl.innerHTML = '<p style="color: #7f8c8d; margin: 0; text-align: center;">No active loads found</p>';
+      return;
+    }
+    listEl.innerHTML = loads.map(load => `
+      <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid ${load.status === 'DELIVERED' ? '#27ae60' : '#3498db'};">
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <strong style="color: #2c3e50;">Load #${load.id}</strong>
+            <span style="background: ${load.status === 'DELIVERED' ? '#27ae60' : '#3498db'}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; margin-left: 10px;">${load.status}</span>
+          </div>
+          <div style="font-size: 0.85em; color: #7f8c8d;">${new Date(load.createdAt).toLocaleString()}</div>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 20px; flex-wrap: wrap;">
+          <div><span style="color: #7f8c8d;">From:</span> <strong>${load.origin}</strong></div>
+          <div><span style="color: #7f8c8d;">To:</span> <strong>${load.destination}</strong></div>
+          ${load.deposit ? `<div><span style="color: #7f8c8d;">Deposit:</span> <strong style="color: #f39c12;">${load.deposit} BSC</strong></div>` : ''}
+        </div>
+        ${load.status !== 'DELIVERED' ? `<button class="btn deliver-btn" data-id="${load.id}" style="background: #27ae60; color: white; margin-top: 10px; padding: 8px 16px; width: auto;">Mark Delivered</button>` : ''}
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.deliver-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.target.dataset.id;
+        setButtonLoading(e.target, true);
+        try {
+          const res = await fetch(`${API_BASE}/loads/${id}/delivered`, { method: 'POST' });
+          if (res.ok) {
+            logEvent(`Load #${id} marked as delivered`, 'success');
+            showToast('Load delivered!', 'success');
+            document.getElementById('refresh-loads-btn').click();
+          }
+        } catch (err) {
+          logEvent(`Failed to mark load delivered: ${err.message}`, 'error');
+        }
+        setButtonLoading(e.target, false);
+      });
+    });
+  };
+
+  document.getElementById('refresh-loads-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('refresh-loads-btn');
+    setButtonLoading(btn, true);
+    try {
+      const res = await fetch(`${API_BASE}/loads`);
+      const loads = await res.json();
+      renderLoads(loads);
+      logEvent(`Loaded ${loads.length} shipments`, 'info');
+    } catch (err) {
+      logEvent(`Failed to fetch loads: ${err.message}`, 'error');
+      showToast('Could not connect to logistics API', 'error');
+    }
+    setButtonLoading(btn, false);
+  });
+
+  document.getElementById('create-load-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('create-load-btn');
+    const origin = document.getElementById('load-origin').value.trim();
+    const destination = document.getElementById('load-destination').value.trim();
+    const resultEl = document.getElementById('load-result');
+
+    if (!origin || !destination) {
+      showToast('Please enter origin and destination', 'error');
+      return;
+    }
+
+    setButtonLoading(btn, true);
+    try {
+      const res = await fetch(`${API_BASE}/loads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin, destination })
+      });
+      const load = await res.json();
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<div style="background: #d5f4e6; padding: 15px; border-radius: 8px; color: #27ae60;"><strong>Load #${load.id} Created!</strong><br>Route: ${load.origin} → ${load.destination}</div>`;
+      logEvent(`Load #${load.id} created: ${origin} → ${destination}`, 'success');
+      showToast('Load created successfully!', 'success');
+      document.getElementById('load-origin').value = '';
+      document.getElementById('load-destination').value = '';
+      document.getElementById('refresh-loads-btn').click();
+    } catch (err) {
+      logEvent(`Failed to create load: ${err.message}`, 'error');
+      showToast('Failed to create load', 'error');
+    }
+    setButtonLoading(btn, false);
+  });
+
+  document.getElementById('create-load-with-deposit-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('create-load-with-deposit-btn');
+    const origin = document.getElementById('load-origin').value.trim();
+    const destination = document.getElementById('load-destination').value.trim();
+    const deposit = document.getElementById('load-deposit').value;
+    const resultEl = document.getElementById('load-result');
+
+    if (!origin || !destination) {
+      showToast('Please enter origin and destination', 'error');
+      return;
+    }
+
+    if (!deposit || parseFloat(deposit) <= 0) {
+      showToast('Please enter a BSC deposit amount', 'error');
+      return;
+    }
+
+    if (!bscContract) {
+      showToast('Please connect wallet first to make BSC deposit', 'error');
+      return;
+    }
+
+    setButtonLoading(btn, true);
+    try {
+      const decimals = await bscContract.decimals();
+      logEvent(`Transferring ${deposit} BSC deposit to escrow...`, 'info');
+      const tx = await bscContract.transfer(ESCROW_ADDRESS, ethers.parseUnits(deposit, decimals));
+      logEvent(`Deposit transaction: ${tx.hash.substring(0, 16)}...`, 'info');
+      await tx.wait();
+      logEvent('BSC deposit confirmed!', 'success');
+
+      const res = await fetch(`${API_BASE}/loads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin, destination })
+      });
+      const load = await res.json();
+
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<div style="background: linear-gradient(135deg, #d5f4e6, #fef9e7); padding: 15px; border-radius: 8px;"><strong style="color: #27ae60;">Load #${load.id} Created with BSC Deposit!</strong><br>Route: ${load.origin} → ${load.destination}<br><span style="color: #f39c12;">Deposit: ${deposit} BSC sent to escrow</span></div>`;
+      logEvent(`Load #${load.id} created with ${deposit} BSC deposit`, 'success');
+      showToast('Load created with BSC deposit!', 'success');
+      document.getElementById('load-origin').value = '';
+      document.getElementById('load-destination').value = '';
+      document.getElementById('load-deposit').value = '';
+      await refreshBalance();
+      document.getElementById('refresh-loads-btn').click();
+    } catch (err) {
+      logEvent(`Failed: ${err.reason || err.message}`, 'error');
+      showToast('Transaction failed', 'error');
+    }
+    setButtonLoading(btn, false);
   });
 
   logEvent('DeFi Dashboard initialized', 'info');
