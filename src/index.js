@@ -41,6 +41,14 @@ async function init() {
         </section>
 
         <section class="card" style="grid-column: 1 / -1;">
+          <h2 style="border-bottom: 2px solid #34495e; padding-bottom: 10px; color: #34495e; margin-top: 0;">📢 Dynastic Public Notices</h2>
+          <div id="public-notices" style="max-height: 150px; overflow-y: auto; background: #ebf2f8; padding: 15px; border-radius: 8px; border-left: 5px solid #34495e;">
+            <p style="color: #34495e; font-weight: bold; margin-bottom: 5px;">[GLOBAL NOTICE] ECCLESIA NATION HANDSHAKE ACTIVE</p>
+            <p style="color: #7f8c8d; font-size: 0.85em;">The Borders Dynasty has officially synchronized with the Codex Ecclesia Sovereign Nation ledger. All citizens and assets are now recognized cross-repository.</p>
+          </div>
+        </section>
+
+        <section class="card" style="grid-column: 1 / -1;">
           <h2 style="border-bottom: 2px solid #2ecc71; padding-bottom: 10px; color: #2ecc71; margin-top: 0;">🏛️ Sovereign Compliance</h2>
           <div style="text-align: center; padding: 15px;">
             <p style="color: #7f8c8d; font-size: 0.9em; margin-bottom: 15px;">QFS-Compliant Architecture Verified</p>

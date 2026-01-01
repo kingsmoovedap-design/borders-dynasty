@@ -28,6 +28,10 @@ services:
         value: "https://codex-ecclesia-public.onrender.com"
       - key: ECCLESIA_SYNC_ENDPOINT
         value: "/api/dynasty/sync"
+      - key: NATION_SOVEREIGN_ID
+        value: "DYNASTY-BORDERS-001"
+      - key: PUBLIC_NOTICE_URL
+        value: "https://codex-ecclesia-public.onrender.com/api/notices"
       - key: DYNASTY_SHARED_SECRET
         fromSecret: DYNASTY_SHARED_SECRET
       - key: IDENTITY_CONTRACT_ADDRESS
