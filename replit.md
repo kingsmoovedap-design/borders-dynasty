@@ -35,6 +35,10 @@ A Web3 DeFi sovereign blockchain platform for the CodexChain/Borders Dynasty eco
 - `packages/ecclesia-client/` - Client for Codex Ecclesia public API
 - `packages/ai-dispatch/` - AI dispatch suggestion engine
 - `packages/loadboard/` - Multi-view loadboard (shipper/driver/ops/omega)
+- `packages/loyalty/` - Driver Loyalty System (5-tier progression with benefits)
+- `packages/compliance/` - Compliance Engine (mode/region/cargo rule validation)
+- `packages/risk-radar/` - Risk Radar (6-category composite risk scoring)
+- `packages/rewards/` - Reward System (badges, streaks, redemption marketplace)
 - `apps/omega/` - Omega Portal web console for leadership control
 - `contracts/` - Solidity smart contracts (BordersSovereignCoin, DynasticIdentity, ScrollHashRegistry)
 - `scripts/` - Deployment and utility scripts (including syncAbis.js)
@@ -80,10 +84,42 @@ Regions: NORTH_AMERICA, EUROPE, ASIA_PACIFIC, LATAM
 - `GET /dispatch/evaluate/:loadId` - AI load profitability analysis
 - `POST /dispatch/assign` - Assign driver to load (body: { loadId, driverId, method })
 - `GET /dispatch/history` - View all dispatch records
+- `GET /dispatch/integrated/:loadId` - Integrated dispatch with loyalty, compliance, risk, rewards data
 - `POST /contract/accept` - Accept load contract (body: { loadId, driverId })
 - `GET /contracts` - List all accepted contracts
 - `GET /contracts/:id` - Get contract by ID
 - `GET /contracts/load/:loadId` - Get contract for a specific load
+
+## Loyalty System API Endpoints
+- `GET /loyalty/tiers` - Get all loyalty tiers and point actions
+- `GET /loyalty/driver/:driverId` - Get driver loyalty status and benefits
+- `POST /loyalty/award` - Award loyalty points (body: { driverId, action, multiplier })
+- `GET /loyalty/leaderboard` - Get points leaderboard
+- `GET /loyalty/stats` - Get tier distribution stats
+- `GET /loyalty/history/:driverId` - Get driver points history
+
+## Compliance Engine API Endpoints
+- `GET /compliance/rules` - Get all compliance rules (mode, region, cargo)
+- `POST /compliance/check` - Run compliance check (body: { loadId, driverData, loadData })
+- `POST /compliance/exception` - Log compliance exception (body: { loadId, driverId, exceptionType, reason })
+- `GET /compliance/exceptions` - Get compliance exceptions with filters
+- `GET /compliance/stats` - Get compliance statistics
+
+## Risk Radar API Endpoints
+- `GET /risk/overview` - Get regional risk overview and stats
+- `POST /risk/assess` - Run risk assessment (body: { loadId, loadData, driverData })
+- `GET /risk/load/:loadId` - Get risk assessment for specific load
+- `GET /risk/history` - Get risk assessment history with filters
+- `GET /risk/stats` - Get risk statistics
+
+## Rewards System API Endpoints
+- `GET /rewards/options` - Get badges, streaks, and redemption options
+- `GET /rewards/driver/:driverId` - Get driver rewards and active boosts
+- `POST /rewards/award` - Award rewards (body: { driverId, rewardType, value, reason })
+- `POST /rewards/badge` - Award badge (body: { driverId, badgeId })
+- `POST /rewards/redeem` - Redeem rewards (body: { driverId, option })
+- `GET /rewards/history` - Get reward history
+- `GET /rewards/stats` - Get reward system statistics
 
 ## Devine Dispatch API Endpoints (External Contract Gathering)
 - `GET /devine-dispatch/partners` - List external loadboard partners and status

@@ -224,6 +224,89 @@ export const partnerStatus = pgTable("partner_status", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const driverLoyalty = pgTable("driver_loyalty", {
+  id: serial("id").primaryKey(),
+  driverId: varchar("driver_id", { length: 64 }).notNull().unique(),
+  tier: varchar("tier", { length: 24 }).notNull().default("BRONZE"),
+  totalPoints: integer("total_points").notNull().default(0),
+  currentPoints: integer("current_points").notNull().default(0),
+  tierStartDate: timestamp("tier_start_date").notNull().defaultNow(),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+  lifetimeLoads: integer("lifetime_loads").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: serial("id").primaryKey(),
+  driverId: varchar("driver_id", { length: 64 }).notNull(),
+  action: varchar("action", { length: 32 }).notNull(),
+  points: integer("points").notNull(),
+  multiplier: decimal("multiplier", { precision: 4, scale: 2 }).notNull().default("1.0"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const complianceChecks = pgTable("compliance_checks", {
+  id: serial("id").primaryKey(),
+  loadId: varchar("load_id", { length: 64 }).notNull(),
+  driverId: varchar("driver_id", { length: 64 }),
+  compliant: boolean("compliant").notNull(),
+  mode: varchar("mode", { length: 16 }).notNull(),
+  region: varchar("region", { length: 32 }).notNull(),
+  errors: jsonb("errors"),
+  warnings: jsonb("warnings"),
+  passes: jsonb("passes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const complianceExceptions = pgTable("compliance_exceptions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  loadId: varchar("load_id", { length: 64 }).notNull(),
+  driverId: varchar("driver_id", { length: 64 }),
+  exceptionType: varchar("exception_type", { length: 48 }).notNull(),
+  reason: text("reason").notNull(),
+  overridden: boolean("overridden").notNull().default(false),
+  overrideBy: varchar("override_by", { length: 64 }),
+  overrideAt: timestamp("override_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const riskAssessments = pgTable("risk_assessments", {
+  id: serial("id").primaryKey(),
+  loadId: varchar("load_id", { length: 64 }).notNull(),
+  driverId: varchar("driver_id", { length: 64 }),
+  compositeScore: integer("composite_score").notNull(),
+  compositeLevel: varchar("composite_level", { length: 16 }).notNull(),
+  riskMultiplier: decimal("risk_multiplier", { precision: 4, scale: 2 }).notNull(),
+  categories: jsonb("categories"),
+  recommendations: jsonb("recommendations"),
+  region: varchar("region", { length: 32 }),
+  mode: varchar("mode", { length: 16 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const driverRewards = pgTable("driver_rewards", {
+  id: serial("id").primaryKey(),
+  driverId: varchar("driver_id", { length: 64 }).notNull().unique(),
+  rewardPoints: integer("reward_points").notNull().default(0),
+  badges: jsonb("badges"),
+  streaks: jsonb("streaks"),
+  activeBoosts: jsonb("active_boosts"),
+  redemptions: jsonb("redemptions"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const rewardTransactions = pgTable("reward_transactions", {
+  id: serial("id").primaryKey(),
+  driverId: varchar("driver_id", { length: 64 }).notNull(),
+  type: varchar("type", { length: 32 }).notNull(),
+  value: integer("value").notNull(),
+  reason: text("reason").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const loadsRelations = relations(loads, ({ one }) => ({
   driver: one(drivers, {
     fields: [loads.driverId],
