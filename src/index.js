@@ -38,7 +38,7 @@ async function init() {
     if (window.ethereum) {
       try {
         provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
+        await provider.send('eth_requestAccounts', []);
         signer = await provider.getSigner();
         const address = await signer.getAddress();
         
