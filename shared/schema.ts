@@ -89,6 +89,50 @@ export const dispatchRecords = pgTable("dispatch_records", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+export const externalContracts = pgTable("external_contracts", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  externalId: varchar("external_id", { length: 128 }).notNull(),
+  source: varchar("source", { length: 32 }).notNull(),
+  origin: text("origin").notNull(),
+  destination: text("destination").notNull(),
+  mode: varchar("mode", { length: 16 }).notNull(),
+  rate: decimal("rate", { precision: 12, scale: 2 }).notNull(),
+  distance: decimal("distance", { precision: 10, scale: 2 }),
+  weight: decimal("weight", { precision: 10, scale: 2 }),
+  equipment: varchar("equipment", { length: 32 }),
+  shipperName: text("shipper_name"),
+  dynastyScore: integer("dynasty_score").notNull().default(0),
+  redirected: boolean("redirected").notNull().default(false),
+  redirectTarget: varchar("redirect_target", { length: 32 }),
+  status: varchar("status", { length: 24 }).notNull().default("GATHERED"),
+  convertedLoadId: varchar("converted_load_id", { length: 64 }),
+  gatheredAt: timestamp("gathered_at").notNull().defaultNow(),
+});
+
+export const tokenTransactions = pgTable("token_transactions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  type: varchar("type", { length: 32 }).notNull(),
+  loadId: varchar("load_id", { length: 64 }),
+  driverId: varchar("driver_id", { length: 64 }),
+  fromAddress: varchar("from_address", { length: 64 }).notNull(),
+  toAddress: varchar("to_address", { length: 64 }).notNull(),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  txHash: varchar("tx_hash", { length: 128 }),
+  status: varchar("status", { length: 16 }).notNull().default("PENDING"),
+  tokenContract: varchar("token_contract", { length: 64 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const securityEvents = pgTable("security_events", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  type: varchar("type", { length: 48 }).notNull(),
+  ip: varchar("ip", { length: 64 }),
+  path: varchar("path", { length: 256 }),
+  data: jsonb("data"),
+  severity: varchar("severity", { length: 16 }).notNull().default("INFO"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const loadsRelations = relations(loads, ({ one }) => ({
   driver: one(drivers, {
     fields: [loads.driverId],

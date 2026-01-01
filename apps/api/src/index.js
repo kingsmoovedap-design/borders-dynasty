@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const { FreightEngine, VALID_MODES } = require("../../../packages/freight-logic");
 const { codexLog } = require("../../../packages/codex/codexClient");
 const {
@@ -14,8 +15,38 @@ const { generateLaunchPlan, getLaunchChecklist, LAUNCH_STAGES } = require("../..
 const { AIDispatchEngine } = require("../../../packages/ai-dispatch/index.cjs");
 const { Loadboard } = require("../../../packages/loadboard/index.cjs");
 
+const {
+  createSecurityMiddleware,
+  validateInput,
+  blockIP,
+  unblockIP,
+  getBlockedIPs,
+  logSecurityEvent,
+  getSecurityEvents,
+  strictRateLimiter,
+  corsConfig
+} = require("../../../packages/security/index.cjs");
+
+const {
+  gatherAllContracts,
+  gatherFromPartner,
+  getGatheredContracts,
+  getDynastyQualified,
+  convertToDynastyLoad,
+  getPartnerStatus,
+  getDispatchStats,
+  PARTNER_BOARDS
+} = require("../../../packages/devine-dispatch/index.cjs");
+
+const tokenIntegration = require("../../../packages/treasury/token-integration.cjs");
+
 const app = express();
-app.use(express.json());
+
+app.use(cors(corsConfig));
+app.use(express.json({ limit: '1mb' }));
+
+const securityMiddleware = createSecurityMiddleware();
+securityMiddleware.forEach(mw => app.use(mw));
 
 const freightEngine = new FreightEngine();
 const treasuryEngine = new TreasuryEngine();
@@ -560,6 +591,231 @@ app.get("/contracts/load/:loadId", (req, res) => {
   const contract = contracts.find(c => c.loadId === req.params.loadId);
   if (!contract) return res.status(404).json({ error: "No contract for this load" });
   res.json(contract);
+});
+
+app.get("/security/status", strictRateLimiter, (req, res) => {
+  res.json({
+    blockedIPs: getBlockedIPs(),
+    recentEvents: getSecurityEvents(50),
+    protection: {
+      rateLimit: "60 req/min",
+      anomalyThreshold: "100 req/min",
+      blockDuration: "15 min"
+    }
+  });
+});
+
+app.get("/security/events", strictRateLimiter, (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+  res.json(getSecurityEvents(limit));
+});
+
+app.post("/security/block-ip", strictRateLimiter, async (req, res) => {
+  const { ip, reason, duration } = req.body;
+  if (!ip) return res.status(400).json({ error: "ip required" });
+  
+  blockIP(ip, reason || "MANUAL_BLOCK", duration);
+  await codexLog("IP_BLOCKED_MANUAL", "SECURITY", { ip, reason }, "omega");
+  
+  res.json({ success: true, ip, blocked: true });
+});
+
+app.post("/security/unblock-ip", strictRateLimiter, async (req, res) => {
+  const { ip } = req.body;
+  if (!ip) return res.status(400).json({ error: "ip required" });
+  
+  unblockIP(ip);
+  await codexLog("IP_UNBLOCKED_MANUAL", "SECURITY", { ip }, "omega");
+  
+  res.json({ success: true, ip, unblocked: true });
+});
+
+app.get("/devine-dispatch/partners", (req, res) => {
+  res.json({
+    partners: PARTNER_BOARDS,
+    status: getPartnerStatus()
+  });
+});
+
+app.post("/devine-dispatch/gather", async (req, res) => {
+  const { partnerId } = req.body;
+  
+  try {
+    let result;
+    if (partnerId) {
+      result = await gatherFromPartner(partnerId);
+    } else {
+      result = await gatherAllContracts();
+    }
+    
+    await codexLog("CONTRACTS_GATHERED", "DEVINE_DISPATCH", result, "ai-dispatch");
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/devine-dispatch/contracts", (req, res) => {
+  const filters = {
+    mode: req.query.mode,
+    redirected: req.query.redirected === 'true' ? true : (req.query.redirected === 'false' ? false : undefined),
+    minScore: req.query.minScore ? parseInt(req.query.minScore) : undefined,
+    source: req.query.source
+  };
+  
+  res.json(getGatheredContracts(filters));
+});
+
+app.get("/devine-dispatch/qualified", (req, res) => {
+  res.json(getDynastyQualified());
+});
+
+app.post("/devine-dispatch/convert/:contractId", async (req, res) => {
+  const { contractId } = req.params;
+  
+  try {
+    const dynastyLoad = convertToDynastyLoad(contractId);
+    
+    const load = freightEngine.createLoad(dynastyLoad);
+    loads.push(load);
+    
+    await codexLog("EXTERNAL_CONTRACT_CONVERTED", "DEVINE_DISPATCH", {
+      externalContractId: contractId,
+      dynastyLoadId: load.id,
+      source: dynastyLoad.source,
+      dynastyScore: dynastyLoad.dynastyScore
+    }, "ai-dispatch");
+    
+    res.json({ convertedLoad: load, originalContract: contractId });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/devine-dispatch/stats", (req, res) => {
+  res.json(getDispatchStats());
+});
+
+app.post("/token/escrow/deposit", validateInput('escrowDeposit'), async (req, res) => {
+  const { loadId, amount, depositorAddress } = req.body;
+  
+  try {
+    const deposit = await tokenIntegration.depositEscrow(loadId, amount, depositorAddress);
+    
+    await codexLog("ESCROW_DEPOSITED", "TOKEN_TREASURY", {
+      loadId,
+      amount,
+      txHash: deposit.txHash
+    }, "treasury");
+    
+    res.json(deposit);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/token/escrow/:loadId", (req, res) => {
+  const balance = tokenIntegration.getEscrowBalance(req.params.loadId);
+  res.json(balance);
+});
+
+app.post("/token/payout/:loadId", async (req, res) => {
+  const { loadId } = req.params;
+  const { driverWallet } = req.body;
+  
+  const load = loads.find(l => l.id === loadId);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+  
+  const contract = contracts.find(c => c.loadId === loadId);
+  if (!contract) return res.status(404).json({ error: "No contract for this load" });
+  
+  if (!driverWallet) return res.status(400).json({ error: "driverWallet required" });
+  
+  try {
+    const result = await tokenIntegration.processDeliveryPayout(loadId, contract.amount, driverWallet);
+    
+    await codexLog("PAYOUT_PROCESSED", "TOKEN_TREASURY", {
+      loadId,
+      driverPayout: contract.driverPayout,
+      dynastyFee: contract.dynastyFee,
+      driverTxHash: result.driverTransaction.txHash,
+      dynastyTxHash: result.dynastyTransaction.txHash
+    }, "treasury");
+    
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/token/credit/advance", async (req, res) => {
+  const { driverId, amount, driverWallet } = req.body;
+  
+  if (!driverId || !amount || !driverWallet) {
+    return res.status(400).json({ error: "driverId, amount, and driverWallet required" });
+  }
+  
+  try {
+    const creditResult = devineCredit.issueAdvance(driverId, amount);
+    
+    const tokenTx = await tokenIntegration.issueCreditAdvance(driverId, amount, driverWallet);
+    
+    await codexLog("CREDIT_ADVANCE_ISSUED", "TOKEN_TREASURY", {
+      driverId,
+      amount,
+      txHash: tokenTx.txHash
+    }, "credit-system");
+    
+    res.json({
+      credit: creditResult,
+      tokenTransaction: tokenTx
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/token/credit/repay", async (req, res) => {
+  const { driverId, amount, driverWallet } = req.body;
+  
+  if (!driverId || !amount || !driverWallet) {
+    return res.status(400).json({ error: "driverId, amount, and driverWallet required" });
+  }
+  
+  try {
+    const creditResult = devineCredit.processRepayment(driverId, amount);
+    
+    const tokenTx = await tokenIntegration.processCreditRepayment(driverId, amount, driverWallet);
+    
+    await codexLog("CREDIT_REPAYMENT_PROCESSED", "TOKEN_TREASURY", {
+      driverId,
+      amount,
+      txHash: tokenTx.txHash
+    }, "credit-system");
+    
+    res.json({
+      credit: creditResult,
+      tokenTransaction: tokenTx
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/token/transactions", (req, res) => {
+  const filters = {
+    type: req.query.type,
+    loadId: req.query.loadId,
+    driverId: req.query.driverId,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  
+  res.json(tokenIntegration.getTokenTransactions(filters));
+});
+
+app.get("/token/treasury/stats", (req, res) => {
+  res.json(tokenIntegration.getTreasuryStats());
 });
 
 const port = process.env.API_PORT || 3000;

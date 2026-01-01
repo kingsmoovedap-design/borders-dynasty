@@ -103,6 +103,32 @@ class DevineCredit {
     }
     return this.transactions;
   }
+
+  processRepayment(driverId, amount) {
+    const creditLine = this.creditLines.get(driverId);
+    if (!creditLine) {
+      throw new Error(`No credit line for driver ${driverId}`);
+    }
+    
+    const repayAmount = Math.min(creditLine.balance, amount);
+    
+    creditLine.balance -= repayAmount;
+    creditLine.available += repayAmount;
+
+    const tx = {
+      id: `REP-${Date.now()}`,
+      driverId,
+      type: "REPAYMENT",
+      amount: repayAmount,
+      balanceAfter: creditLine.balance,
+      createdAt: new Date().toISOString()
+    };
+
+    creditLine.history.push(tx);
+    this.transactions.push(tx);
+
+    return { repaid: repayAmount, creditLine, transaction: tx };
+  }
 }
 
 const CREDIT_TIERS = {
