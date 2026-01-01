@@ -73,6 +73,11 @@ const {
   getTreasuryInsights
 } = require("../../../packages/live-intel/index.cjs");
 
+const loyalty = require("../../../packages/loyalty/index.cjs");
+const compliance = require("../../../packages/compliance/index.cjs");
+const riskRadar = require("../../../packages/risk-radar/index.cjs");
+const rewards = require("../../../packages/rewards/index.cjs");
+
 startOrchestrator(60000);
 
 const app = express();
@@ -1071,6 +1076,411 @@ app.get("/intel/treasury", (req, res) => {
   res.json({
     insights: getTreasuryInsights(),
     marketIntel: getMarketIntel(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/loyalty/tiers", (req, res) => {
+  res.json({
+    tiers: loyalty.LOYALTY_TIERS,
+    actions: loyalty.POINT_ACTIONS
+  });
+});
+
+app.get("/loyalty/driver/:driverId", (req, res) => {
+  const driverId = req.params.driverId;
+  let driverLoyalty = loyalty.getDriverLoyalty(driverId);
+  
+  if (!driverLoyalty) {
+    driverLoyalty = loyalty.initializeDriver(driverId);
+  }
+  
+  res.json({
+    loyalty: driverLoyalty,
+    benefits: loyalty.getTierBenefits(driverLoyalty.tier),
+    dispatchBonus: loyalty.calculateDispatchBonus(driverId)
+  });
+});
+
+app.post("/loyalty/award", async (req, res) => {
+  const { driverId, action, multiplier, metadata } = req.body;
+  
+  if (!driverId || !action) {
+    return res.status(400).json({ error: "driverId and action required" });
+  }
+  
+  try {
+    const result = loyalty.awardPoints(driverId, action, multiplier || 1, metadata || {});
+    
+    await codexLog("LOYALTY_POINTS_AWARDED", "LOYALTY", {
+      driverId,
+      action,
+      points: result.pointsAwarded,
+      newTotal: result.newTotal,
+      tier: result.tier,
+      tierUpgrade: result.tierUpgrade
+    }, "loyalty-system");
+    
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/loyalty/leaderboard", (req, res) => {
+  const limit = parseInt(req.query.limit) || 20;
+  res.json(loyalty.getLeaderboard(limit));
+});
+
+app.get("/loyalty/stats", (req, res) => {
+  res.json(loyalty.getTierStats());
+});
+
+app.get("/loyalty/history/:driverId", (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  res.json(loyalty.getPointsHistory(req.params.driverId, limit));
+});
+
+app.get("/compliance/rules", (req, res) => {
+  res.json({
+    modes: compliance.MODE_RULES,
+    regions: compliance.REGION_RULES,
+    cargo: compliance.CARGO_RULES,
+    categories: compliance.COMPLIANCE_CATEGORIES
+  });
+});
+
+app.post("/compliance/check", async (req, res) => {
+  const { loadId, driverData, loadData } = req.body;
+  
+  if (!loadId || !driverData || !loadData) {
+    return res.status(400).json({ error: "loadId, driverData, and loadData required" });
+  }
+  
+  const result = compliance.runFullComplianceCheck(loadId, loadData, driverData);
+  
+  await codexLog("COMPLIANCE_CHECKED", "COMPLIANCE", {
+    loadId,
+    driverId: driverData.driverId,
+    compliant: result.compliant,
+    errorCount: result.errors.length,
+    warningCount: result.warnings.length
+  }, "compliance-engine");
+  
+  res.json(result);
+});
+
+app.post("/compliance/exception", async (req, res) => {
+  const { loadId, driverId, exceptionType, reason, overrideBy } = req.body;
+  
+  if (!loadId || !exceptionType || !reason) {
+    return res.status(400).json({ error: "loadId, exceptionType, and reason required" });
+  }
+  
+  const exception = compliance.logException(loadId, driverId, exceptionType, reason, overrideBy);
+  
+  await codexLog("COMPLIANCE_EXCEPTION", "COMPLIANCE", {
+    exceptionId: exception.id,
+    loadId,
+    driverId,
+    exceptionType,
+    overridden: exception.overridden
+  }, "compliance-engine");
+  
+  res.json(exception);
+});
+
+app.get("/compliance/exceptions", (req, res) => {
+  const filters = {
+    loadId: req.query.loadId,
+    driverId: req.query.driverId,
+    exceptionType: req.query.type,
+    limit: parseInt(req.query.limit) || 100
+  };
+  res.json(compliance.getExceptions(filters));
+});
+
+app.get("/compliance/stats", (req, res) => {
+  res.json(compliance.getComplianceStats());
+});
+
+app.get("/risk/overview", (req, res) => {
+  res.json({
+    regional: riskRadar.getRegionalRiskOverview(),
+    stats: riskRadar.getRiskStats(),
+    levels: riskRadar.RISK_LEVELS,
+    categories: riskRadar.RISK_CATEGORIES
+  });
+});
+
+app.post("/risk/assess", async (req, res) => {
+  const { loadId, loadData, driverData, complianceResult } = req.body;
+  
+  if (!loadId || !loadData || !driverData) {
+    return res.status(400).json({ error: "loadId, loadData, and driverData required" });
+  }
+  
+  const compResult = complianceResult || compliance.runFullComplianceCheck(loadId, loadData, driverData);
+  const intel = getLatestIntel();
+  
+  const riskAssessment = riskRadar.calculateCompositeRisk(
+    loadId, 
+    loadData, 
+    driverData, 
+    compResult, 
+    intel
+  );
+  
+  await codexLog("RISK_ASSESSED", "RISK_RADAR", {
+    loadId,
+    driverId: driverData.driverId,
+    compositeScore: riskAssessment.compositeScore,
+    level: riskAssessment.compositeLevel
+  }, "risk-radar");
+  
+  res.json(riskAssessment);
+});
+
+app.get("/risk/load/:loadId", (req, res) => {
+  const load = loads.find(l => l.id === req.params.loadId);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+  
+  const driver = drivers.get(load.driverId);
+  if (!driver) {
+    return res.json({ error: "No driver assigned", loadId: req.params.loadId });
+  }
+  
+  const driverData = {
+    driverId: driver.driverId,
+    safetyScore: 95,
+    cancellationRate: 2,
+    onTimeRate: 96,
+    loadsCompleted: driver.loadsCompleted,
+    tenureMonths: 6
+  };
+  
+  const loadData = {
+    mode: load.mode,
+    region: load.region,
+    origin: load.origin,
+    destination: load.destination,
+    cargoType: load.cargoType || 'GENERAL'
+  };
+  
+  const compResult = compliance.runFullComplianceCheck(load.id, loadData, driverData);
+  const intel = getLatestIntel();
+  const riskAssessment = riskRadar.calculateCompositeRisk(load.id, loadData, driverData, compResult, intel);
+  
+  res.json(riskAssessment);
+});
+
+app.get("/risk/history", (req, res) => {
+  const filters = {
+    loadId: req.query.loadId,
+    driverId: req.query.driverId,
+    minScore: req.query.minScore ? parseInt(req.query.minScore) : undefined,
+    level: req.query.level,
+    limit: parseInt(req.query.limit) || 100
+  };
+  res.json(riskRadar.getRiskHistory(filters));
+});
+
+app.get("/risk/stats", (req, res) => {
+  res.json(riskRadar.getRiskStats());
+});
+
+app.get("/rewards/options", (req, res) => {
+  res.json({
+    badges: rewards.BADGES,
+    streaks: rewards.STREAKS,
+    redemptionOptions: rewards.REDEMPTION_OPTIONS
+  });
+});
+
+app.get("/rewards/driver/:driverId", (req, res) => {
+  const driverId = req.params.driverId;
+  let driverRewards = rewards.getDriverRewards(driverId);
+  
+  if (!driverRewards) {
+    driverRewards = rewards.initializeDriverRewards(driverId);
+  }
+  
+  res.json({
+    rewards: driverRewards,
+    activeBoosts: rewards.getActiveBoosts(driverId)
+  });
+});
+
+app.post("/rewards/award", async (req, res) => {
+  const { driverId, rewardType, value, reason, metadata } = req.body;
+  
+  if (!driverId || !rewardType || value === undefined || !reason) {
+    return res.status(400).json({ error: "driverId, rewardType, value, and reason required" });
+  }
+  
+  const result = rewards.awardReward(driverId, rewardType, value, reason, metadata || {});
+  
+  await codexLog("REWARD_GRANTED", "REWARDS", {
+    driverId,
+    rewardType,
+    value,
+    reason
+  }, "reward-system");
+  
+  res.json(result);
+});
+
+app.post("/rewards/badge", async (req, res) => {
+  const { driverId, badgeId } = req.body;
+  
+  if (!driverId || !badgeId) {
+    return res.status(400).json({ error: "driverId and badgeId required" });
+  }
+  
+  try {
+    const result = rewards.awardBadge(driverId, badgeId);
+    
+    if (result.success) {
+      await codexLog("BADGE_AWARDED", "REWARDS", {
+        driverId,
+        badgeId,
+        badgeName: result.badge.name,
+        points: result.pointsAwarded
+      }, "reward-system");
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/rewards/redeem", async (req, res) => {
+  const { driverId, option } = req.body;
+  
+  if (!driverId || !option) {
+    return res.status(400).json({ error: "driverId and option required" });
+  }
+  
+  const result = rewards.redeemReward(driverId, option);
+  
+  if (result.success) {
+    await codexLog("REWARD_REDEEMED", "REWARDS", {
+      driverId,
+      option,
+      cost: result.redemption.cost,
+      description: result.redemption.description
+    }, "reward-system");
+  }
+  
+  res.json(result);
+});
+
+app.get("/rewards/history", (req, res) => {
+  const filters = {
+    driverId: req.query.driverId,
+    type: req.query.type,
+    limit: parseInt(req.query.limit) || 100
+  };
+  res.json(rewards.getRewardHistory(filters));
+});
+
+app.get("/rewards/stats", (req, res) => {
+  res.json(rewards.getRewardStats());
+});
+
+app.get("/dispatch/integrated/:loadId", async (req, res) => {
+  const load = loads.find(l => l.id === req.params.loadId);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+
+  const allDrivers = Array.from(drivers.values());
+  const creditLines = devineCredit.getAllCreditLines();
+  const intel = getLatestIntel();
+  
+  const enrichedDrivers = allDrivers.map(driver => {
+    const driverLoyalty = loyalty.getDriverLoyalty(driver.driverId) || loyalty.initializeDriver(driver.driverId);
+    const driverRewards = rewards.getDriverRewards(driver.driverId) || rewards.initializeDriverRewards(driver.driverId);
+    
+    const driverData = {
+      ...driver,
+      driverId: driver.driverId,
+      safetyScore: 95,
+      cancellationRate: 2,
+      onTimeRate: 96,
+      loadsCompleted: driver.loadsCompleted || 0,
+      tenureMonths: 6,
+      licenseValid: true,
+      insuranceValid: true,
+      certifications: ['CDL', 'DOT_NUMBER'],
+      equipment: driver.equipment || 'DRY_VAN'
+    };
+    
+    const loadData = {
+      mode: load.mode,
+      region: load.region,
+      origin: load.origin,
+      destination: load.destination,
+      cargoType: load.cargoType || 'GENERAL',
+      weightLbs: load.weightLbs || 20000
+    };
+    
+    const compResult = compliance.runFullComplianceCheck(load.id, loadData, driverData);
+    const riskAssessment = riskRadar.calculateCompositeRisk(load.id, loadData, driverData, compResult, intel);
+    
+    return {
+      driver: driverData,
+      loyalty: {
+        tier: driverLoyalty.tier,
+        totalPoints: driverLoyalty.totalPoints,
+        dispatchBonus: loyalty.calculateDispatchBonus(driver.driverId)
+      },
+      rewards: {
+        badges: driverRewards.badges.length,
+        activeBoosts: rewards.getActiveBoosts(driver.driverId)
+      },
+      compliance: {
+        compliant: compResult.compliant,
+        errors: compResult.errors.length,
+        warnings: compResult.warnings.length
+      },
+      risk: {
+        score: riskAssessment.compositeScore,
+        level: riskAssessment.compositeLevel,
+        multiplier: riskAssessment.riskMultiplier
+      }
+    };
+  });
+  
+  const suggestions = aiDispatch.suggestDrivers(allDrivers, load, creditLines);
+  
+  const integratedSuggestions = suggestions.suggestions.map(suggestion => {
+    const enriched = enrichedDrivers.find(e => e.driver.driverId === suggestion.driverId);
+    return {
+      ...suggestion,
+      score: suggestion.totalScore + (enriched?.loyalty?.dispatchBonus || 0),
+      loyalty: enriched?.loyalty,
+      rewards: enriched?.rewards,
+      compliance: enriched?.compliance,
+      risk: enriched?.risk
+    };
+  }).sort((a, b) => b.score - a.score);
+  
+  res.json({
+    load: {
+      id: load.id,
+      origin: load.origin,
+      destination: load.destination,
+      mode: load.mode,
+      region: load.region,
+      budget: load.budgetAmount,
+      status: load.status
+    },
+    suggestions: integratedSuggestions,
+    drivers: enrichedDrivers,
+    marketConditions: {
+      rates: intel['freight-rates']?.[load.region]?.[load.mode],
+      demand: intel['demand-signals']?.[load.region]?.[load.mode]
+    },
     timestamp: new Date().toISOString()
   });
 });
