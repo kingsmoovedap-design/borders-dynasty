@@ -36,9 +36,16 @@ function activateRegion(region) {
   return true;
 }
 
+function setRegionReady(region) {
+  if (!opsState.regions[region]) return false;
+  opsState.regions[region].ready = true;
+  return true;
+}
+
 module.exports = {
   getOpsStatus,
   activateMode,
   deactivateMode,
-  activateRegion
+  activateRegion,
+  setRegionReady
 };
