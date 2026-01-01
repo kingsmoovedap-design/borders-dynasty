@@ -51,6 +51,7 @@ function Sidebar() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '&#128200;' },
+    { path: '/dispatch', label: 'Dispatch Console', icon: '&#127919;' },
     { path: '/intel', label: 'Live Intel', icon: '&#128225;' },
     { path: '/loads', label: 'Loads', icon: '&#128230;' },
     { path: '/drivers', label: 'Drivers', icon: '&#128666;' },
@@ -781,6 +782,301 @@ function IntelPage() {
   );
 }
 
+function DispatchConsolePage() {
+  const [loads, setLoads] = useState([]);
+  const [selectedLoad, setSelectedLoad] = useState(null);
+  const [dispatchData, setDispatchData] = useState(null);
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [assigning, setAssigning] = useState(false);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    Promise.all([api.fetchLoads(), api.fetchDrivers()]).then(([l, d]) => {
+      setLoads(l || []);
+      setDrivers(d || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const loadDispatchData = async (load) => {
+    setSelectedLoad(load);
+    setDispatchData(null);
+    try {
+      const data = await api.fetchIntegratedDispatch(load.id);
+      setDispatchData(data);
+    } catch (err) {
+      console.error('Failed to load dispatch data', err);
+    }
+  };
+
+  const handleAssign = async (driverId, method) => {
+    if (!selectedLoad) return;
+    setAssigning(true);
+    try {
+      await api.assignDriver(selectedLoad.id, driverId, method);
+      const updated = await api.fetchLoads();
+      setLoads(updated);
+      setSelectedLoad(null);
+      setDispatchData(null);
+    } catch (err) {
+      console.error('Assignment failed', err);
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const filteredLoads = loads.filter(l => {
+    if (filter === 'unassigned') return l.status === 'CREATED' && !l.driverId;
+    if (filter === 'assigned') return l.driverId;
+    if (filter === 'in_transit') return l.status === 'IN_TRANSIT';
+    return true;
+  });
+
+  const getRiskColor = (level) => {
+    switch (level) {
+      case 'LOW': return '#10b981';
+      case 'MODERATE': return '#fbbf24';
+      case 'ELEVATED': return '#f97316';
+      case 'HIGH': return '#ef4444';
+      case 'CRITICAL': return '#a855f7';
+      default: return '#6b7280';
+    }
+  };
+
+  const getTierColor = (tier) => {
+    switch (tier) {
+      case 'BRONZE': return '#cd7f32';
+      case 'SILVER': return '#c0c0c0';
+      case 'GOLD': return '#ffd700';
+      case 'PLATINUM': return '#e5e4e2';
+      case 'DYNASTY_ELITE': return '#9333ea';
+      default: return '#6b7280';
+    }
+  };
+
+  if (loading) return <div className="main-content"><p>Loading dispatch console...</p></div>;
+
+  return (
+    <div className="main-content" style={{ height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column' }}>
+      <div className="header">
+        <h1 className="page-title">Dispatch Console</h1>
+        <div className="header-actions">
+          <select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value)}
+            style={{ padding: '8px 16px', background: '#1e1e3f', border: '1px solid #2a2a4a', borderRadius: '6px', color: '#fff' }}
+          >
+            <option value="all">All Loads</option>
+            <option value="unassigned">Unassigned</option>
+            <option value="assigned">Assigned</option>
+            <option value="in_transit">In Transit</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', flex: 1, minHeight: 0 }}>
+        <div className="panel" style={{ flex: '0 0 320px', overflow: 'auto' }}>
+          <div className="panel-header">
+            <h3 className="panel-title">Loads ({filteredLoads.length})</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredLoads.map(load => (
+              <div
+                key={load.id}
+                onClick={() => loadDispatchData(load)}
+                style={{
+                  padding: '12px',
+                  background: selectedLoad?.id === load.id ? '#2a2a6a' : '#1e1e3f',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: selectedLoad?.id === load.id ? '2px solid #fbbf24' : '2px solid transparent'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: '600', fontSize: '12px' }}>{load.id.slice(0, 12)}</span>
+                  <span className={`status-badge status-${load.status.toLowerCase().replace('_', '-')}`} style={{ fontSize: '10px' }}>
+                    {load.status}
+                  </span>
+                </div>
+                <div style={{ fontSize: '14px', marginBottom: '4px' }}>{load.origin} → {load.destination}</div>
+                <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#6b7280' }}>
+                  <span>{load.mode}</span>
+                  <span>|</span>
+                  <span>${load.budgetAmount}</span>
+                  <span>|</span>
+                  <span>{load.region}</span>
+                </div>
+              </div>
+            ))}
+            {filteredLoads.length === 0 && (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>No loads found</div>
+            )}
+          </div>
+        </div>
+
+        <div className="panel" style={{ flex: 1, overflow: 'auto' }}>
+          <div className="panel-header">
+            <h3 className="panel-title">AI Suggestions</h3>
+          </div>
+          {!selectedLoad ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#127919;</div>
+              <p>Select a load to view AI dispatch suggestions</p>
+            </div>
+          ) : !dispatchData ? (
+            <div style={{ padding: '40px', textAlign: 'center' }}>Loading suggestions...</div>
+          ) : dispatchData.suggestions?.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {dispatchData.suggestions.slice(0, 5).map((suggestion, i) => (
+                <div key={suggestion.driverId} style={{ 
+                  padding: '16px', 
+                  background: i === 0 ? '#1a3a2a' : '#1e1e3f', 
+                  borderRadius: '8px',
+                  border: i === 0 ? '2px solid #10b981' : 'none'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '16px' }}>
+                        {i === 0 && <span style={{ color: '#10b981', marginRight: '8px' }}>TOP PICK</span>}
+                        {suggestion.driverName || suggestion.driverId}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Score: {suggestion.score}</div>
+                    </div>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => handleAssign(suggestion.driverId, 'AI_RECOMMENDED')}
+                      disabled={assigning}
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                    >
+                      {assigning ? 'Assigning...' : 'Assign'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px' }}>
+                    {suggestion.loyalty && (
+                      <div style={{ padding: '4px 8px', background: '#2a2a4a', borderRadius: '4px' }}>
+                        <span style={{ color: getTierColor(suggestion.loyalty.tier) }}>{suggestion.loyalty.tier}</span>
+                        <span style={{ marginLeft: '8px', color: '#6b7280' }}>+{suggestion.loyalty.dispatchBonus} priority</span>
+                      </div>
+                    )}
+                    {suggestion.compliance && (
+                      <div style={{ padding: '4px 8px', background: '#2a2a4a', borderRadius: '4px' }}>
+                        <span style={{ color: suggestion.compliance.compliant ? '#10b981' : '#ef4444' }}>
+                          {suggestion.compliance.compliant ? 'Compliant' : `${suggestion.compliance.errors} errors`}
+                        </span>
+                      </div>
+                    )}
+                    {suggestion.risk && (
+                      <div style={{ padding: '4px 8px', background: '#2a2a4a', borderRadius: '4px' }}>
+                        <span style={{ color: getRiskColor(suggestion.risk.level) }}>
+                          Risk: {suggestion.risk.level} ({suggestion.risk.score})
+                        </span>
+                      </div>
+                    )}
+                    {suggestion.rewards && suggestion.rewards.badges > 0 && (
+                      <div style={{ padding: '4px 8px', background: '#2a2a4a', borderRadius: '4px' }}>
+                        {suggestion.rewards.badges} badges
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+              <p>No driver suggestions available. Register drivers to see recommendations.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="panel" style={{ flex: '0 0 340px', overflow: 'auto' }}>
+          <div className="panel-header">
+            <h3 className="panel-title">Manual Override</h3>
+          </div>
+          {!selectedLoad ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+              Select a load first
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#1e1e3f', borderRadius: '8px' }}>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Selected Load</div>
+                <div style={{ fontWeight: '600' }}>{selectedLoad.origin} → {selectedLoad.destination}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>{selectedLoad.mode} | ${selectedLoad.budgetAmount}</div>
+              </div>
+              
+              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>Available Drivers ({drivers.length})</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {drivers.map(driver => {
+                  const enriched = dispatchData?.drivers?.find(d => d.driver.driverId === driver.driverId);
+                  return (
+                    <div key={driver.driverId} style={{ 
+                      padding: '12px', 
+                      background: '#1e1e3f', 
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{driver.name}</div>
+                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                          {driver.homeBase} | {driver.equipment}
+                        </div>
+                        {enriched && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', fontSize: '10px' }}>
+                            <span style={{ color: getTierColor(enriched.loyalty?.tier) }}>{enriched.loyalty?.tier}</span>
+                            <span style={{ color: enriched.compliance?.compliant ? '#10b981' : '#ef4444' }}>
+                              {enriched.compliance?.compliant ? 'OK' : 'ISSUE'}
+                            </span>
+                            <span style={{ color: getRiskColor(enriched.risk?.level) }}>
+                              R:{enriched.risk?.score}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => handleAssign(driver.driverId, 'OMEGA_OVERRIDE')}
+                        disabled={assigning}
+                        style={{ fontSize: '11px', padding: '4px 8px' }}
+                      >
+                        Override
+                      </button>
+                    </div>
+                  );
+                })}
+                {drivers.length === 0 && (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280' }}>No drivers registered</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {dispatchData?.marketConditions && (
+        <div className="panel" style={{ marginTop: '16px', padding: '12px' }}>
+          <div style={{ display: 'flex', gap: '24px', fontSize: '12px' }}>
+            <div>
+              <span style={{ color: '#6b7280' }}>Market Rate: </span>
+              <span style={{ fontWeight: '600' }}>${dispatchData.marketConditions.rates?.current || 'N/A'}</span>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280' }}>Demand: </span>
+              <span style={{ fontWeight: '600' }}>{dispatchData.marketConditions.demand?.demandScore || 'N/A'}%</span>
+            </div>
+            <div>
+              <span style={{ color: '#6b7280' }}>Load Budget: </span>
+              <span style={{ fontWeight: '600' }}>${selectedLoad?.budgetAmount || 0}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OpsPage() {
   const [ops, setOps] = useState(null);
   const [launching, setLaunching] = useState(false);
@@ -942,6 +1238,7 @@ export default function App() {
       <div style={{ flex: 1, marginRight: aiOpen ? '400px' : '0', transition: 'margin-right 0.3s' }}>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/dispatch" component={DispatchConsolePage} />
           <Route path="/intel" component={IntelPage} />
           <Route path="/loads" component={LoadsPage} />
           <Route path="/drivers" component={DriversPage} />

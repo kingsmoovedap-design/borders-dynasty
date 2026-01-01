@@ -280,3 +280,128 @@ export async function fetchGovernance() {
   const res = await fetch(`${API_BASE}/governance/constitution`);
   return res.json();
 }
+
+export async function fetchLoyaltyTiers() {
+  const res = await fetch(`${API_BASE}/loyalty/tiers`);
+  return res.json();
+}
+
+export async function fetchDriverLoyalty(driverId) {
+  const res = await fetch(`${API_BASE}/loyalty/driver/${driverId}`);
+  return res.json();
+}
+
+export async function fetchLoyaltyLeaderboard(limit = 20) {
+  const res = await fetch(`${API_BASE}/loyalty/leaderboard?limit=${limit}`);
+  return res.json();
+}
+
+export async function fetchLoyaltyStats() {
+  const res = await fetch(`${API_BASE}/loyalty/stats`);
+  return res.json();
+}
+
+export async function awardLoyaltyPoints(driverId, action, multiplier = 1) {
+  const res = await fetch(`${API_BASE}/loyalty/award`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driverId, action, multiplier })
+  });
+  return res.json();
+}
+
+export async function fetchComplianceRules() {
+  const res = await fetch(`${API_BASE}/compliance/rules`);
+  return res.json();
+}
+
+export async function runComplianceCheck(loadId, driverData, loadData) {
+  const res = await fetch(`${API_BASE}/compliance/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ loadId, driverData, loadData })
+  });
+  return res.json();
+}
+
+export async function fetchComplianceStats() {
+  const res = await fetch(`${API_BASE}/compliance/stats`);
+  return res.json();
+}
+
+export async function fetchComplianceExceptions(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.loadId) params.set('loadId', filters.loadId);
+  if (filters.driverId) params.set('driverId', filters.driverId);
+  if (filters.limit) params.set('limit', filters.limit);
+  const res = await fetch(`${API_BASE}/compliance/exceptions?${params}`);
+  return res.json();
+}
+
+export async function fetchRiskOverview() {
+  const res = await fetch(`${API_BASE}/risk/overview`);
+  return res.json();
+}
+
+export async function assessRisk(loadId, loadData, driverData) {
+  const res = await fetch(`${API_BASE}/risk/assess`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ loadId, loadData, driverData })
+  });
+  return res.json();
+}
+
+export async function fetchRiskStats() {
+  const res = await fetch(`${API_BASE}/risk/stats`);
+  return res.json();
+}
+
+export async function fetchRiskHistory(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.loadId) params.set('loadId', filters.loadId);
+  if (filters.driverId) params.set('driverId', filters.driverId);
+  if (filters.minScore) params.set('minScore', filters.minScore);
+  if (filters.level) params.set('level', filters.level);
+  if (filters.limit) params.set('limit', filters.limit);
+  const res = await fetch(`${API_BASE}/risk/history?${params}`);
+  return res.json();
+}
+
+export async function fetchRewardOptions() {
+  const res = await fetch(`${API_BASE}/rewards/options`);
+  return res.json();
+}
+
+export async function fetchDriverRewards(driverId) {
+  const res = await fetch(`${API_BASE}/rewards/driver/${driverId}`);
+  return res.json();
+}
+
+export async function awardBadge(driverId, badgeId) {
+  const res = await fetch(`${API_BASE}/rewards/badge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driverId, badgeId })
+  });
+  return res.json();
+}
+
+export async function redeemReward(driverId, option) {
+  const res = await fetch(`${API_BASE}/rewards/redeem`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driverId, option })
+  });
+  return res.json();
+}
+
+export async function fetchRewardStats() {
+  const res = await fetch(`${API_BASE}/rewards/stats`);
+  return res.json();
+}
+
+export async function fetchIntegratedDispatch(loadId) {
+  const res = await fetch(`${API_BASE}/dispatch/integrated/${loadId}`);
+  return res.json();
+}
