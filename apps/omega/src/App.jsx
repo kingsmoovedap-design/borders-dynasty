@@ -51,6 +51,7 @@ function Sidebar() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '&#128200;' },
+    { path: '/intel', label: 'Live Intel', icon: '&#128225;' },
     { path: '/loads', label: 'Loads', icon: '&#128230;' },
     { path: '/drivers', label: 'Drivers', icon: '&#128666;' },
     { path: '/contracts', label: 'Contracts', icon: '&#128196;' },
@@ -538,6 +539,248 @@ function TreasuryPage() {
   );
 }
 
+function IntelPage() {
+  const [intel, setIntel] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  const loadIntel = useCallback(async () => {
+    try {
+      const [allIntel, alertData] = await Promise.all([
+        api.fetchAllIntel(),
+        api.fetchIntelAlerts(20)
+      ]);
+      setIntel(allIntel);
+      setAlerts(alertData.alerts || []);
+      setLastUpdate(new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error('Failed to load intel', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadIntel();
+    const interval = setInterval(loadIntel, 30000);
+    return () => clearInterval(interval);
+  }, [loadIntel]);
+
+  if (loading) return <div className="main-content"><p>Loading live intelligence...</p></div>;
+
+  const marketIntel = intel?.intel?.['freight-rates'];
+  const fuelIntel = intel?.intel?.['fuel-prices'];
+  const weatherIntel = intel?.intel?.['weather'];
+  const trafficIntel = intel?.intel?.['traffic'];
+  const portIntel = intel?.intel?.['port-status'];
+  const demandIntel = intel?.intel?.['demand-signals'];
+  const partnerIntel = intel?.intel?.['partner-boards'];
+  const status = intel?.status;
+
+  return (
+    <div className="main-content">
+      <div className="header">
+        <h1 className="page-title">Live Intelligence</h1>
+        <div className="header-actions">
+          <span className="status-badge status-active">LIVE</span>
+          <span style={{ marginLeft: '12px', fontSize: '12px', color: '#6b7280' }}>
+            Last update: {lastUpdate}
+          </span>
+          <button className="btn btn-secondary" onClick={loadIntel} style={{ marginLeft: '12px' }}>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Orchestrator Runs</div>
+          <div className="stat-value">{status?.runCount || 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Sources</div>
+          <div className="stat-value">{Object.keys(status?.sourceHealth || {}).length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Alerts</div>
+          <div className="stat-value">{alerts.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Cache Age</div>
+          <div className="stat-value">{marketIntel?.cacheAge || 0}s</div>
+        </div>
+      </div>
+
+      {alerts.length > 0 && (
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Active Alerts</h3>
+          </div>
+          <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            {alerts.slice(0, 10).map((alert, i) => (
+              <div key={i} className={`alert alert-${alert.severity?.toLowerCase() === 'warning' ? 'warning' : 'info'}`}>
+                <strong>[{alert.sourceId}]</strong> {alert.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid-2">
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Freight Rates</h3>
+          </div>
+          {marketIntel?.metrics?.rates ? (
+            <table className="table">
+              <thead>
+                <tr><th>Region</th><th>Ground</th><th>Air</th><th>Ocean</th><th>Courier</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(marketIntel.metrics.rates).map(([region, modes]) => (
+                  <tr key={region}>
+                    <td>{region.replace('_', ' ')}</td>
+                    <td style={{ color: modes.GROUND?.trend === 'UP' ? '#ef4444' : modes.GROUND?.trend === 'DOWN' ? '#10b981' : '#6b7280' }}>
+                      ${modes.GROUND?.current} {modes.GROUND?.trend === 'UP' ? '\u2191' : modes.GROUND?.trend === 'DOWN' ? '\u2193' : '-'}
+                    </td>
+                    <td style={{ color: modes.AIR?.trend === 'UP' ? '#ef4444' : modes.AIR?.trend === 'DOWN' ? '#10b981' : '#6b7280' }}>
+                      ${modes.AIR?.current} {modes.AIR?.trend === 'UP' ? '\u2191' : modes.AIR?.trend === 'DOWN' ? '\u2193' : '-'}
+                    </td>
+                    <td style={{ color: modes.OCEAN?.trend === 'UP' ? '#ef4444' : modes.OCEAN?.trend === 'DOWN' ? '#10b981' : '#6b7280' }}>
+                      ${modes.OCEAN?.current} {modes.OCEAN?.trend === 'UP' ? '\u2191' : modes.OCEAN?.trend === 'DOWN' ? '\u2193' : '-'}
+                    </td>
+                    <td style={{ color: modes.COURIER?.trend === 'UP' ? '#ef4444' : modes.COURIER?.trend === 'DOWN' ? '#10b981' : '#6b7280' }}>
+                      ${modes.COURIER?.current} {modes.COURIER?.trend === 'UP' ? '\u2191' : modes.COURIER?.trend === 'DOWN' ? '\u2193' : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No rate data available</p>
+          )}
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Fuel Prices</h3>
+          </div>
+          {fuelIntel?.metrics?.prices ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+              {Object.entries(fuelIntel.metrics.prices).map(([fuel, data]) => (
+                <div key={fuel} style={{ padding: '16px', background: '#1e1e3f', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{fuel}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '600', color: data.trend === 'UP' ? '#ef4444' : data.trend === 'DOWN' ? '#10b981' : '#fff' }}>
+                    ${data.current}
+                    <span style={{ fontSize: '14px', marginLeft: '8px' }}>
+                      {data.trend === 'UP' ? '\u2191' : data.trend === 'DOWN' ? '\u2193' : '-'} {data.change24h}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No fuel data available</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Partner Loadboards</h3>
+          </div>
+          {partnerIntel?.metrics?.partners ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              {partnerIntel.metrics.partners.map((partner, i) => (
+                <div key={i} style={{ padding: '12px', background: '#1e1e3f', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{partner.name}</div>
+                  <div className={`status-badge status-${partner.status.toLowerCase()}`} style={{ marginTop: '4px' }}>
+                    {partner.status}
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '600', marginTop: '8px' }}>{partner.contractsAvailable}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>contracts</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No partner data available</p>
+          )}
+          <div style={{ marginTop: '16px', textAlign: 'center', color: '#6b7280' }}>
+            Total Contracts Available: <strong style={{ color: '#fff' }}>{partnerIntel?.metrics?.totalContracts || 0}</strong>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Market Demand</h3>
+          </div>
+          {demandIntel?.metrics?.demand ? (
+            <table className="table">
+              <thead>
+                <tr><th>Region</th><th>Ground</th><th>Air</th><th>Ocean</th><th>Courier</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(demandIntel.metrics.demand).map(([region, modes]) => (
+                  <tr key={region}>
+                    <td>{region.replace('_', ' ')}</td>
+                    {['GROUND', 'AIR', 'OCEAN', 'COURIER'].map(mode => (
+                      <td key={mode}>
+                        <div style={{ 
+                          width: '100%', 
+                          height: '8px', 
+                          background: '#2a2a4a', 
+                          borderRadius: '4px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{ 
+                            width: `${modes[mode]?.demandScore || 0}%`,
+                            height: '100%',
+                            background: modes[mode]?.demandScore > 70 ? '#10b981' : modes[mode]?.demandScore > 40 ? '#fbbf24' : '#ef4444'
+                          }} />
+                        </div>
+                        <div style={{ fontSize: '10px', textAlign: 'center', marginTop: '2px' }}>{modes[mode]?.demandScore || 0}</div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No demand data available</p>
+          )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-header">
+          <h3 className="panel-title">Port Status</h3>
+        </div>
+        {portIntel?.metrics?.ports ? (
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            {Object.entries(portIntel.metrics.ports).map(([region, ports]) => (
+              <div key={region} style={{ flex: '1', minWidth: '200px' }}>
+                <h4 style={{ marginBottom: '12px', color: '#6b7280' }}>{region.replace('_', ' ')}</h4>
+                {ports.slice(0, 3).map((port, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #2a2a4a' }}>
+                    <span>{port.name}</span>
+                    <span className={`status-badge status-${port.status === 'CONGESTED' ? 'warning' : port.status === 'BUSY' ? 'pending' : 'active'}`}>
+                      {port.status} ({port.waitTime}d wait)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>No port data available</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function OpsPage() {
   const [ops, setOps] = useState(null);
   const [launching, setLaunching] = useState(false);
@@ -699,6 +942,7 @@ export default function App() {
       <div style={{ flex: 1, marginRight: aiOpen ? '400px' : '0', transition: 'margin-right 0.3s' }}>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/intel" component={IntelPage} />
           <Route path="/loads" component={LoadsPage} />
           <Route path="/drivers" component={DriversPage} />
           <Route path="/contracts" component={ContractsPage} />

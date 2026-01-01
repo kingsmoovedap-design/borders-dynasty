@@ -2,7 +2,15 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dynasty-omega-secret-' + crypto.randomBytes(16).toString('hex');
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const JWT_SECRET = process.env.JWT_SECRET || (isDevelopment ? 'dynasty-dev-secret-' + crypto.randomBytes(16).toString('hex') : null);
+
+if (!JWT_SECRET) {
+  console.error('[AUTH] CRITICAL: JWT_SECRET environment variable is required in production');
+  if (!isDevelopment) {
+    throw new Error('JWT_SECRET is required in production environment');
+  }
+}
 const JWT_EXPIRY = '4h';
 const REFRESH_EXPIRY = '7d';
 

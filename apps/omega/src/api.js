@@ -235,3 +235,48 @@ export async function processTokenPayout(loadId, driverWallet) {
   });
   return res.json();
 }
+
+export async function fetchIntelStatus() {
+  const res = await fetch(`${API_BASE}/intel/status`);
+  return res.json();
+}
+
+export async function fetchAllIntel() {
+  const res = await fetch(`${API_BASE}/intel/all`);
+  return res.json();
+}
+
+export async function fetchMarketIntel() {
+  const res = await fetch(`${API_BASE}/intel/market`);
+  return res.json();
+}
+
+export async function fetchOperationalIntel() {
+  const res = await fetch(`${API_BASE}/intel/operational`);
+  return res.json();
+}
+
+export async function fetchPartnerIntel() {
+  const res = await fetch(`${API_BASE}/intel/partners`);
+  return res.json();
+}
+
+export async function fetchIntelAlerts(limit = 50) {
+  const res = await fetch(`${API_BASE}/intel/alerts?limit=${limit}`);
+  return res.json();
+}
+
+export async function fetchDispatchAdjustments(region, mode) {
+  const res = await fetch(`${API_BASE}/intel/dispatch/${region}/${mode}`);
+  return res.json();
+}
+
+export async function fetchTreasuryIntel() {
+  const res = await fetch(`${API_BASE}/intel/treasury`);
+  return res.json();
+}
+
+export async function fetchGovernance() {
+  const res = await fetch(`${API_BASE}/governance/constitution`);
+  return res.json();
+}

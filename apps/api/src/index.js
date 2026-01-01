@@ -61,6 +61,20 @@ const {
   getAuditStats
 } = require("../../../packages/audit/index.cjs");
 
+const {
+  startOrchestrator,
+  getOrchestratorStatus,
+  getLatestIntel,
+  getMarketIntel,
+  getOperationalIntel,
+  getPartnerIntel,
+  getActiveAlerts,
+  getDispatchAdjustments,
+  getTreasuryInsights
+} = require("../../../packages/live-intel/index.cjs");
+
+startOrchestrator(60000);
+
 const app = express();
 
 app.use(cors(corsConfig));
@@ -996,6 +1010,69 @@ app.get("/audit/verify", authMiddleware('*'), (req, res) => {
   const result = verifyChainIntegrity(startIndex, endIndex);
   
   res.json(result);
+});
+
+app.get("/intel/status", (req, res) => {
+  res.json(getOrchestratorStatus());
+});
+
+app.get("/intel/all", (req, res) => {
+  res.json({
+    intel: getLatestIntel(),
+    status: getOrchestratorStatus(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/intel/market", (req, res) => {
+  res.json({
+    intel: getMarketIntel(),
+    treasuryInsights: getTreasuryInsights(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/intel/operational", (req, res) => {
+  res.json({
+    intel: getOperationalIntel(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/intel/partners", (req, res) => {
+  res.json({
+    intel: getPartnerIntel(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/intel/alerts", async (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const alerts = await getActiveAlerts(limit);
+  res.json({
+    alerts,
+    count: alerts.length,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/intel/dispatch/:region/:mode", (req, res) => {
+  const { region, mode } = req.params;
+  const adjustments = getDispatchAdjustments(region.toUpperCase(), mode.toUpperCase());
+  res.json({
+    region: region.toUpperCase(),
+    mode: mode.toUpperCase(),
+    adjustments,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/intel/treasury", (req, res) => {
+  res.json({
+    insights: getTreasuryInsights(),
+    marketIntel: getMarketIntel(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get("/governance/constitution", (req, res) => {

@@ -124,6 +124,16 @@ Regions: NORTH_AMERICA, EUROPE, ASIA_PACIFIC, LATAM
 - `POST /audit/report` - Generate compliance report (omega only)
 - `GET /audit/verify` - Verify chain integrity (omega only)
 
+## Live Intel API Endpoints
+- `GET /intel/status` - Orchestrator status, source health, and cache info
+- `GET /intel/all` - All live intelligence data from all sources
+- `GET /intel/market` - Freight rates, fuel prices, and treasury insights
+- `GET /intel/operational` - Weather, traffic, and port status
+- `GET /intel/partners` - Partner loadboard status and availability
+- `GET /intel/alerts` - Active alerts from all intel sources
+- `GET /intel/dispatch/:region/:mode` - Dispatch adjustments based on live conditions
+- `GET /intel/treasury` - Treasury insights with market intelligence
+
 ## Governance API Endpoints
 - `GET /governance/constitution` - Dynasty OS constitution and IP ownership
 
