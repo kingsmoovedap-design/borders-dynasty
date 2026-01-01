@@ -1,5 +1,8 @@
 import { ethers } from 'ethers';
 
+// Contracts address (Placeholder - update after deployment)
+const BSC_CONTRACT_ADDRESS = '0x12efC9a5D115AE7833c9a6D79f1B3BA18Cde817c';
+
 async function init() {
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -158,31 +161,64 @@ async function init() {
             logEvent('👑 Sovereign Administrator identity recognized.');
         }
         
+        // Initialize Contract Instance
+        const abi = [
+            "function balanceOf(address) view returns (uint256)",
+            "function decimals() view returns (uint8)",
+            "function symbol() view returns (string)",
+            "function mint(address to, uint256 amount) public",
+            "function setBlacklist(address account, bool status) public"
+        ];
+        const bscContract = new ethers.Contract(BSC_CONTRACT_ADDRESS, abi, signer);
+        
+        // Fetch Balance
+        const balance = await bscContract.balanceOf(address);
+        const decimals = await bscContract.decimals();
+        const symbol = await bscContract.symbol();
+        document.getElementById('user-balance').innerText = ethers.formatUnits(balance, decimals);
+        
         connectBtn.style.display = 'none';
         coinInfo.style.display = 'block';
         logEvent(`Sovereign access granted to ${address.substring(0, 8)}...`);
+        
+        // Update Mint Logic to use Contract
+        document.getElementById('mint-btn').onclick = async () => {
+            const to = document.getElementById('mint-to').value;
+            const amount = document.getElementById('mint-amount').value;
+            if (to && amount) {
+                try {
+                    logEvent(`Executing Mint Decree: ${amount} ${symbol} to ${to.substring(0, 8)}...`);
+                    const tx = await bscContract.mint(to, ethers.parseUnits(amount, decimals));
+                    await tx.wait();
+                    logEvent('Minting decree confirmed on CodexChain.');
+                    // Refresh balance
+                    const newBal = await bscContract.balanceOf(address);
+                    document.getElementById('user-balance').innerText = ethers.formatUnits(newBal, decimals);
+                } catch (err) {
+                    logEvent('Minting decree failed: Insufficient authority.');
+                }
+            }
+        };
+        
+        // Update Blacklist Logic to use Contract
+        document.getElementById('blacklist-btn').onclick = async () => {
+            const addr = document.getElementById('blacklist-address').value;
+            if (addr) {
+                try {
+                    logEvent(`Enforcing Security Decree: Blacklisted ${addr.substring(0, 8)}...`);
+                    const tx = await bscContract.setBlacklist(addr, true);
+                    await tx.wait();
+                    logEvent('Security decree verified on CodexChain.');
+                } catch (err) {
+                    logEvent('Security decree failed: Insufficient authority.');
+                }
+            }
+        };
       } catch (err) {
-        alert('Access denied.');
+        logEvent(`Connection failed: ${err.message}`);
       }
     } else {
       alert('Install MetaMask to access the dynasty.');
-    }
-  });
-
-  document.getElementById('mint-btn').addEventListener('click', () => {
-    const to = document.getElementById('mint-to').value;
-    const amount = document.getElementById('mint-amount').value;
-    if (to && amount) {
-      logEvent(`Mint Decree: ${amount} BSC to ${to.substring(0, 8)}...`);
-      alert('Minting decree broadcasted.');
-    }
-  });
-
-  document.getElementById('blacklist-btn').addEventListener('click', () => {
-    const addr = document.getElementById('blacklist-address').value;
-    if (addr) {
-      logEvent(`Security Decree: Blacklisted ${addr.substring(0, 8)}...`);
-      alert('Security decree enforced.');
     }
   });
 
