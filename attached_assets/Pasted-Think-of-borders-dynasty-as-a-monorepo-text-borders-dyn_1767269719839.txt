@@ -1,0 +1,3107 @@
+Think of borders-dynasty as a monorepo:
+
+text
+borders-dynasty/
+├── apps/
+│   ├── api/                # Logistics + treasury + credit API (brains)
+│   ├── operator-console/   # Web console for Omega + ops
+│   └── driver-app/         # Mobile app for drivers
+│
+├── packages/
+│   ├── freight-logic/      # Core logistics math (loads, lanes, routing)
+│   ├── ai-dispatch/        # AI driver matching, recommendations
+│   ├── devine-credit/      # Credit accounts, limits, advances, repayments
+│   ├── treasury-core/      # Payout splits, dynasty share, token logic
+│   ├── codex-client/       # Client for Codex Ecclesia (audit + anchors)
+│   ├── shared-types/       # Types used across everything
+│   └── infra-events/       # Event bus contracts
+│
+└── Dev_In_A_Box/           # Your specs + governance (truth source)
+And codex-ecclesia-public as:
+
+text
+codex-ecclesia-public/
+├── apps/
+│   └── codex-api/          # Receives records, anchors them
+├── packages/
+│   ├── codex-schema/       # Canonical record shapes
+│   ├── anchor-engine/      # Hashing, Merkle, blockchain integration
+│   └── certificate-core/   # Build Dynasty certificates, proofs
+Now let’s turn this into sample source logic.
+
+3. Shared types (the DNA of the system)
+packages/shared-types/src/index.ts
+
+ts
+export type Mode = "GROUND" | "AIR" | "OCEAN" | "RAIL";
+
+export interface Load {
+  id: string;
+  shipperId: string;
+  origin: string;
+  destination: string;
+  mode: Mode;
+  status: "CREATED" | "ASSIGNED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  createdAt: string;
+  updatedAt: string;
+  budgetAmount: number; // total revenue
+}
+
+export interface Driver {
+  id: string;
+  homeBaseCity: string;
+  authorizedModes: Mode[];
+  rating: number;
+}
+
+export interface CreditAccount {
+  id: string;
+  ownerType: "DRIVER" | "FLEET" | "NODE";
+  ownerId: string;
+  limit: number;
+  balance: number; // negative = owes, positive = in favor
+}
+
+export interface TreasurySplit {
+  driverAmount: number;
+  fleetAmount: number;
+  dynastyShareAmount: number;
+  tokenRewardAmount: number;
+}
+This is what every engine respects.
+
+4. Core domain modules (sample logic)
+4.1 Freight logic – how loads live and move
+packages/freight-logic/src/freightEngine.ts
+
+ts
+import { Load, Mode } from "@borders/shared-types";
+import { v4 as uuid } from "uuid";
+
+export class FreightEngine {
+  createLoad(input: {
+    shipperId: string;
+    origin: string;
+    destination: string;
+    mode: Mode;
+    budgetAmount: number;
+  }): Load {
+    const now = new Date().toISOString();
+
+    return {
+      id: uuid(),
+      ...input,
+      status: "CREATED",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  markAssigned(load: Load): Load {
+    return {
+      ...load,
+      status: "ASSIGNED",
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  markDelivered(load: Load): Load {
+    return {
+      ...load,
+      status: "DELIVERED",
+      updatedAt: new Date().toISOString()
+    };
+  }
+}
+This is how you standardize chaos: every load in the world becomes this.
+
+4.2 AI dispatch – how you win drivers and capacity
+packages/ai-dispatch/src/dispatchEngine.ts
+
+ts
+import { Load, Driver } from "@borders/shared-types";
+
+export interface DispatchSuggestion {
+  primaryDriver: Driver;
+  backups: Driver[];
+  score: number;
+}
+
+export class DispatchEngine {
+  suggestDrivers(load: Load, candidates: Driver[]): DispatchSuggestion | null {
+    const eligible = candidates.filter(d =>
+      d.authorizedModes.includes(load.mode)
+    );
+
+    if (eligible.length === 0) return null;
+
+    const scored = eligible
+      .map(d => ({
+        driver: d,
+        score: this.scoreDriverForLoad(d, load)
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    return {
+      primaryDriver: scored[0].driver,
+      backups: scored.slice(1, 4).map(x => x.driver),
+      score: scored[0].score
+    };
+  }
+
+  private scoreDriverForLoad(driver: Driver, load: Load): number {
+    let score = 0;
+    score += driver.rating * 10;
+    if (driver.homeBaseCity && load.origin.includes(driver.homeBaseCity)) {
+      score += 20;
+    }
+    if (load.budgetAmount > 5000) score += 5;
+    return score;
+  }
+}
+This tells dispatchers: “Here’s who should haul this, and why.”
+
+4.3 Devine Credit – how drivers get hooked into your network
+packages/devine-credit/src/creditEngine.ts
+
+ts
+import { CreditAccount } from "@borders/shared-types";
+
+export class CreditEngine {
+  requestAdvance(
+    account: CreditAccount,
+    amount: number
+  ): { account: CreditAccount; approved: boolean } {
+    if (amount <= 0) {
+      return { account, approved: false };
+    }
+
+    const projectedBalance = account.balance - amount;
+    if (Math.abs(projectedBalance) > account.limit) {
+      return { account, approved: false };
+    }
+
+    const updated: CreditAccount = {
+      ...account,
+      balance: projectedBalance
+    };
+
+    return { account: updated, approved: true };
+  }
+
+  applyRepayment(
+    account: CreditAccount,
+    repaymentAmount: number
+  ): CreditAccount {
+    return {
+      ...account,
+      balance: account.balance + repaymentAmount
+    };
+  }
+}
+This is how you become their bank.
+
+4.4 Treasury core – how money flows into dynasty + drivers
+packages/treasury-core/src/treasuryEngine.ts
+
+ts
+import { TreasurySplit } from "@borders/shared-types";
+
+export interface SplitConfig {
+  driverShare: number; // e.g. 0.70
+  fleetShare: number;  // e.g. 0.10
+  dynastyShare: number; // e.g. 0.20
+  tokenPerDollar: number; // e.g. 0.01
+}
+
+export class TreasuryEngine {
+  splitPayout(amount: number, config: SplitConfig): TreasurySplit {
+    const driverAmount = amount * config.driverShare;
+    const fleetAmount = amount * config.fleetShare;
+    const dynastyShareAmount = amount * config.dynastyShare;
+    const tokenRewardAmount = amount * config.tokenPerDollar;
+
+    return {
+      driverAmount,
+      fleetAmount,
+      dynastyShareAmount,
+      tokenRewardAmount
+    };
+  }
+}
+Now your payout rules are code, not vibes.
+
+4.5 Codex client – how everything gets written into your eternal record
+packages/codex-client/src/index.ts
+
+ts
+import axios from "axios";
+
+const CODEX_URL = process.env.CODEX_URL || "http://localhost:3001";
+
+export async function codexLog(
+  type: string,
+  moduleName: string,
+  data: any,
+  actor: string = "system"
+) {
+  try {
+    const res = await axios.post(`${CODEX_URL}/codex/records`, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err: any) {
+    console.error("[CODEX_LOG_ERROR]", {
+      type,
+      module: moduleName,
+      message: err.message
+    });
+    // later: enqueue for retry
+    return null;
+  }
+}
+Everything that matters passes through this gate.
+
+5. Logistics API (apps/api) – the world’s entry point
+This is where shippers, operators, and drivers actually touch the system.
+
+apps/api/src/index.ts
+
+ts
+import express from "express";
+import { FreightEngine } from "@borders/freight-logic";
+import { DispatchEngine } from "@borders/ai-dispatch";
+import { codexLog } from "@borders/codex-client";
+import { Load, Driver } from "@borders/shared-types";
+
+const app = express();
+app.use(express.json());
+
+const freightEngine = new FreightEngine();
+const dispatchEngine = new DispatchEngine();
+
+// In-memory stores for demo – later: DB
+const loads: Load[] = [];
+const drivers: Driver[] = []; // seeded from your network
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Borders Dynasty Logistics API" });
+});
+
+// 1) Create load – this is how you ingest the world
+app.post("/loads", async (req, res) => {
+  const { shipperId, origin, destination, mode, budgetAmount } = req.body;
+  if (!shipperId || !origin || !destination || !mode || !budgetAmount) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const load = freightEngine.createLoad({
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount
+  });
+
+  loads.push(load);
+
+  await codexLog("LOAD_CREATED", "LOGISTICS", { loadId: load.id, shipperId }, "shipper");
+
+  res.status(201).json(load);
+});
+
+// 2) Ask AI for driver suggestions (penetration: better dispatch than incumbents)
+app.post("/loads/:id/suggest-dispatch", async (req, res) => {
+  const load = loads.find(l => l.id === req.params.id);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+
+  const suggestion = dispatchEngine.suggestDrivers(load, drivers);
+  if (!suggestion) return res.status(400).json({ error: "No eligible drivers" });
+
+  await codexLog("DISPATCH_SUGGESTED", "AI_DISPATCH", {
+    loadId: load.id,
+    primaryDriverId: suggestion.primaryDriver.id,
+    backupDriverIds: suggestion.backups.map(d => d.id),
+    score: suggestion.score
+  }, "ai-engine");
+
+  res.json(suggestion);
+});
+
+// 3) Mark delivered – this triggers treasury + credit in the real build
+app.post("/loads/:id/delivered", async (req, res) => {
+  const loadIndex = loads.findIndex(l => l.id === req.params.id);
+  if (loadIndex === -1) return res.status(404).json({ error: "Load not found" });
+
+  const delivered = {
+    ...loads[loadIndex],
+    status: "DELIVERED",
+    updatedAt: new Date().toISOString()
+  };
+  loads[loadIndex] = delivered;
+
+  await codexLog("LOAD_DELIVERED", "LOGISTICS", { loadId: delivered.id }, "operator");
+
+  // later: call TreasuryEngine + CreditEngine here
+
+  res.json(delivered);
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Borders Dynasty Logistics API listening on ${port}`);
+});
+This is your front door into the world’s freight.
+
+6. End-to-end “penetrate the world” flow in code
+New shipper fills a load form or sends an API request to /loads.
+
+FreightEngine.createLoad standardizes it.
+
+codexLog("LOAD_CREATED", ...) writes it to Codex.
+
+AI dispatch called via /loads/:id/suggest-dispatch.
+
+DispatchEngine.suggestDrivers picks the best driver.
+
+codexLog("DISPATCH_SUGGESTED", ...) records AI’s decision.
+
+Driver delivers the load, /loads/:id/delivered.
+
+Status flips to DELIVERED.
+
+Later: TreasuryEngine.splitPayout + CreditEngine.applyRepayment.
+
+codexLog("LOAD_DELIVERED", ...) makes it permanent record.
+
+Codex Ecclesia (from your other repo) anchors the records, generates certificates.
+
+Your operator console pulls those into dashboards.
+
+Auditors, partners, and eventually banks / investors can see a provable history.
+
+That’s how you penetrate logistics:
+ingest, optimize, pay, prove — on repeat, at scale.
+
+If you want, I can next:
+
+Collapse this into a Replit-ready minimal monorepo you can literally paste and run, or
+
+Map this exact architecture onto your existing borders-dynasty repo tree, telling you file-by-file what to add where.
+
+Collapse this into a Replit-ready minimal monorepo you can literally paste and run, o
+See my thinking
+Here’s a Replit‑ready, minimal “monorepo” you can literally:
+
+Create a new Node.js  Replit
+
+Paste these files into it
+
+Run npm install → npm start
+
+Hit endpoints and see Codex + Logistics working together
+
+Everything is in one Replit project, but the folders are shaped like a future monorepo (apps + packages), so you can later move this into borders-dynasty.
+
+1. File/folder layout
+In your Replit project, create this structure:
+
+text
+.
+├── package.json
+├── index.js            # root starter (starts both services)
+├── apps/
+│   └── api/
+│       └── index.js    # Logistics API
+└── packages/
+    ├── freight-logic/
+    │   └── index.js    # Freight logic
+    └── codex/
+        ├── codexService.js  # Codex Ecclesia service
+        └── codexClient.js   # Client used by Logistics API
+I’ll give you the content for each file below.
+
+2. package.json (root)
+Create package.json in the root:
+
+json
+{
+  "name": "borders-dynasty-replit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.19.0",
+    "uuid": "^9.0.1"
+  }
+}
+In Replit, after creating these files, open the shell and run:
+
+bash
+npm install
+3. Root starter: index.js
+This file starts both:
+
+Codex Ecclesia service (on port 3001)
+
+Logistics API (on port 3000)
+
+Create index.js in the root:
+
+js
+// Root starter: starts Codex service AND Logistics API
+
+// Start Codex Ecclesia service
+require("./packages/codex/codexService");
+
+// Start Logistics API
+require("./apps/api/index");
+Replit will run this when you click “Run”.
+
+4. Codex service: packages/codex/codexService.js
+This is your Codex Ecclesia mock: it receives records and anchors them.
+
+Create packages/codex/codexService.js:
+
+js
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.json());
+
+const codexRecords = [];
+const anchors = [];
+
+function computeHash(obj) {
+  const str = JSON.stringify(obj);
+  return crypto.createHash("sha256").update(str).digest("hex");
+}
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Codex Ecclesia" });
+});
+
+app.post("/codex/records", (req, res) => {
+  const { type, module, actor, data } = req.body;
+
+  if (!type || !module) {
+    return res.status(400).json({ error: "type and module are required" });
+  }
+
+  const timestamp = new Date().toISOString();
+  const prev = codexRecords[codexRecords.length - 1];
+
+  const record = {
+    id: codexRecords.length + 1,
+    type,
+    module,
+    actor: actor || "system",
+    timestamp,
+    data: data || {},
+    prevHash: prev ? prev.hash : null
+  };
+
+  record.hash = computeHash(record);
+  codexRecords.push(record);
+
+  console.log("[CODEX] New record:", record);
+
+  res.status(201).json(record);
+});
+
+app.get("/codex/records", (req, res) => {
+  res.json(codexRecords);
+});
+
+app.post("/codex/anchors", (req, res) => {
+  if (codexRecords.length === 0) {
+    return res.status(400).json({ error: "No records to anchor" });
+  }
+
+  const rootHash = computeHash(codexRecords);
+  const anchor = {
+    id: anchors.length + 1,
+    rootHash,
+    timestamp: new Date().toISOString()
+    // later: chain, txHash
+  };
+
+  anchors.push(anchor);
+  console.log("[ANCHOR] New anchor:", anchor);
+
+  res.status(201).json(anchor);
+});
+
+app.get("/codex/anchors", (req, res) => {
+  res.json(anchors);
+});
+
+const port = 3001;
+app.listen(port, () => {
+  console.log(`Codex Ecclesia running on port ${port}`);
+});
+In Replit, Codex will be accessible at:
+
+https://<your-repl>/codex/records
+
+https://<your-repl>/codex/anchors
+
+(same host, but internally on port 3001).
+
+5. Codex client: packages/codex/codexClient.js
+This is what the Logistics API uses to write Codex records.
+
+Create packages/codex/codexClient.js:
+
+js
+const axios = require("axios");
+
+// In Replit, both services share the same host. We just hit the paths.
+// We don't need the actual port here because Replit proxies traffic,
+// but locally we could use http://localhost:3001
+const CODEX_BASE = process.env.CODEX_URL || "http://localhost:3001";
+
+/**
+ * Log a record to Codex Ecclesia
+ * @param {string} type
+ * @param {string} moduleName
+ * @param {object} data
+ * @param {string} actor
+ */
+async function codexLog(type, moduleName, data = {}, actor = "system") {
+  try {
+    const url = `${CODEX_BASE}/codex/records`;
+    const res = await axios.post(url, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("[CODEX_LOG_ERROR]", {
+      message: err.message,
+      type,
+      module: moduleName
+    });
+    return null;
+  }
+}
+
+module.exports = { codexLog };
+For Replit, it’s fine to leave CODEX_BASE as http://localhost:3001 because inside the container that works; externally Replit proxies to one public URL.
+
+6. Freight logic: packages/freight-logic/index.js
+This is the core of how a load is created and tracked.
+
+Create packages/freight-logic/index.js:
+
+js
+const { v4: uuid } = require("uuid");
+
+class FreightEngine {
+  createLoad(input) {
+    const { shipperId, origin, destination, mode, budgetAmount } = input;
+    const now = new Date().toISOString();
+
+    return {
+      id: uuid(),
+      shipperId,
+      origin,
+      destination,
+      mode,           // "GROUND" | "AIR" | "OCEAN" | "RAIL"
+      budgetAmount,
+      status: "CREATED",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  markDelivered(load) {
+    return {
+      ...load,
+      status: "DELIVERED",
+      updatedAt: new Date().toISOString()
+    };
+  }
+}
+
+module.exports = { FreightEngine };
+7. Logistics API: apps/api/index.js
+This is your Borders Dynasty Logistics API that:
+
+creates loads
+
+lists loads
+
+marks them delivered
+
+sends Codex events for each major action
+
+Create apps/api/index.js:
+
+js
+const express = require("express");
+const { FreightEngine } = require("../../packages/freight-logic");
+const { codexLog } = require("../../packages/codex/codexClient");
+
+const app = express();
+app.use(express.json());
+
+const freightEngine = new FreightEngine();
+
+// In-memory for demo
+const loads = [];
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Borders Dynasty Logistics API" });
+});
+
+// Create a load
+app.post("/loads", async (req, res) => {
+  const { shipperId, origin, destination, mode, budgetAmount } = req.body;
+
+  if (!shipperId || !origin || !destination || !mode || !budgetAmount) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const load = freightEngine.createLoad({
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount
+  });
+
+  loads.push(load);
+
+  // Log in Codex
+  await codexLog("LOAD_CREATED", "LOGISTICS", {
+    loadId: load.id,
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount
+  }, "shipper");
+
+  res.status(201).json(load);
+});
+
+// List loads
+app.get("/loads", (req, res) => {
+  res.json(loads);
+});
+
+// Mark delivered
+app.post("/loads/:id/delivered", async (req, res) => {
+  const { id } = req.params;
+  const loadIndex = loads.findIndex(l => l.id === id);
+
+  if (loadIndex === -1) {
+    return res.status(404).json({ error: "Load not found" });
+  }
+
+  const delivered = freightEngine.markDelivered(loads[loadIndex]);
+  loads[loadIndex] = delivered;
+
+  // Log in Codex
+  await codexLog("LOAD_DELIVERED", "LOGISTICS", {
+    loadId: delivered.id
+  }, "operator");
+
+  res.json(delivered);
+});
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Logistics API running on port ${port}`);
+});
+8. How to run and test in Replit
+Make sure all files are created as above.
+
+In the Replit shell:
+
+bash
+npm install
+npm start
+Replit will expose a single public URL, something like:
+
+text
+https://borders-dynasty-replit.your-user.repl.co
+Internally:
+
+Codex listens on port 3001
+
+Logistics API listens on port 3000
+
+But from the outside, Replit proxies both through the same base URL, differentiated by paths:
+
+Health checks
+Logistics API:
+GET https://<your-repl>/health  
+(served by the Logistics app)
+
+Codex:
+GET https://<your-repl>/codex/records  
+(proxied to the Codex service on 3001)
+
+Create a load
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-1",
+    "origin": "Los Angeles, CA",
+    "destination": "Phoenix, AZ",
+    "mode": "GROUND",
+    "budgetAmount": 1200
+  }'
+You should see a JSON load with an id.
+
+List loads
+bash
+curl https://<your-repl>/loads
+See Codex records
+bash
+curl https://<your-repl>/codex/records
+You should see entries for LOAD_CREATED and, after marking delivered, LOAD_DELIVERED.
+
+9. How to move this into your GitHub repos later
+Copy apps/api into borders-dynasty/apps/api
+
+Copy packages/freight-logic and packages/codex into borders-dynasty/packages
+
+Replace the Replit root index.js with a proper apps/api entry, and treat Codex as a separate service in codex-ecclesia-public
+
+But for now, you have a single Replit lab where:
+
+A logistics API runs
+
+Codex Ecclesia runs
+
+Events are logged
+
+Architecture is shaped like your future monorepo
+
+If you want, next I can add:
+
+A tiny AI dispatch stub into packages/ai-dispatch
+
+A Devine Credit stub into packages/devine-credit
+
+And show you how to call them from the same Replit environment.
+
+code how we plan to launch global with all air ocean ground freight courier knowlege aith each operations arm being ready until activated give me full sample code to test with everything we built embedded
+See my thinking
+You’re asking for a global launch simulator in code:
+
+all modes: GROUND / AIR / OCEAN / COURIER
+
+each operations arm “ready” but only live when activated
+
+everything wired into Codex + logistics API, Replit‑ready
+
+Below is a single Replit project you can paste and run, that models:
+
+global ops config (per mode + per region)
+
+logistics API that knows about modes and activation
+
+Codex Ecclesia receiving audit records
+
+feature‑flag style “activate when ready” switches
+
+basic freight engine
+
+simple global launch “brain” endpoint
+
+1. Folder layout (Replit project)
+Create these:
+
+text
+.
+├── package.json
+├── index.js                     # root starter
+├── apps/
+│   └── api/
+│       └── index.js             # Logistics + global ops API
+└── packages/
+    ├── codex/
+    │   ├── codexService.js      # Codex Ecclesia mock
+    │   └── codexClient.js       # Client used by API
+    ├── freight-logic/
+    │   └── index.js             # Load creation + mode logic
+    └── ops-config/
+        └── index.js             # Global ops readiness + activation
+2. package.json (root)
+json
+{
+  "name": "borders-dynasty-global-replit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.19.0",
+    "uuid": "^9.0.1"
+  }
+}
+Run:
+
+bash
+npm install
+3. Root starter: index.js
+Starts Codex and the Global Logistics API.
+
+js
+// Start Codex Ecclesia service
+require("./packages/codex/codexService");
+
+// Start Global Logistics API
+require("./apps/api/index");
+4. Codex service: packages/codex/codexService.js
+js
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.json());
+
+const codexRecords = [];
+const anchors = [];
+
+function computeHash(obj) {
+  const str = JSON.stringify(obj);
+  return crypto.createHash("sha256").update(str).digest("hex");
+}
+
+app.get("/codex/health", (req, res) => {
+  res.json({ status: "ok", service: "Codex Ecclesia" });
+});
+
+app.post("/codex/records", (req, res) => {
+  const { type, module, actor, data } = req.body;
+
+  if (!type || !module) {
+    return res.status(400).json({ error: "type and module are required" });
+  }
+
+  const timestamp = new Date().toISOString();
+  const prev = codexRecords[codexRecords.length - 1];
+
+  const record = {
+    id: codexRecords.length + 1,
+    type,
+    module,
+    actor: actor || "system",
+    timestamp,
+    data: data || {},
+    prevHash: prev ? prev.hash : null
+  };
+
+  record.hash = computeHash(record);
+  codexRecords.push(record);
+
+  console.log("[CODEX] New record:", record);
+
+  res.status(201).json(record);
+});
+
+app.get("/codex/records", (req, res) => {
+  res.json(codexRecords);
+});
+
+app.post("/codex/anchors", (req, res) => {
+  if (codexRecords.length === 0) {
+    return res.status(400).json({ error: "No records to anchor" });
+  }
+
+  const rootHash = computeHash(codexRecords);
+  const anchor = {
+    id: anchors.length + 1,
+    rootHash,
+    timestamp: new Date().toISOString()
+    // later: chain, txHash
+  };
+
+  anchors.push(anchor);
+  console.log("[ANCHOR] New anchor:", anchor);
+
+  res.status(201).json(anchor);
+});
+
+app.get("/codex/anchors", (req, res) => {
+  res.json(anchors);
+});
+
+const port = 3001;
+app.listen(port, () => {
+  console.log(`Codex Ecclesia running on port ${port}`);
+});
+5. Codex client: packages/codex/codexClient.js
+js
+const axios = require("axios");
+
+const CODEX_BASE = process.env.CODEX_URL || "http://localhost:3001";
+
+async function codexLog(type, moduleName, data = {}, actor = "system") {
+  try {
+    const url = `${CODEX_BASE}/codex/records`;
+    const res = await axios.post(url, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("[CODEX_LOG_ERROR]", {
+      message: err.message,
+      type,
+      module: moduleName
+    });
+    return null;
+  }
+}
+
+module.exports = { codexLog };
+6. Global ops config (activation flags): packages/ops-config/index.js
+This is where we encode which operations arms are “ready” or “activated”.
+
+Modes: GROUND, AIR, OCEAN, COURIER  
+Regions: e.g. NORTH_AMERICA, EUROPE, ASIA_PACIFIC.
+
+js
+// Initial global ops readiness + activation state
+// Think of this as your "pre-launch" config
+
+const opsState = {
+  modes: {
+    GROUND: { ready: true, active: true },
+    AIR: { ready: true, active: false },
+    OCEAN: { ready: true, active: false },
+    COURIER: { ready: true, active: false }
+  },
+  regions: {
+    NORTH_AMERICA: { ready: true, active: true },
+    EUROPE: { ready: true, active: false },
+    ASIA_PACIFIC: { ready: false, active: false },
+    LATAM: { ready: false, active: false }
+  }
+};
+
+function getOpsStatus() {
+  return opsState;
+}
+
+function activateMode(mode) {
+  if (!opsState.modes[mode]) return false;
+  opsState.modes[mode].active = true;
+  return true;
+}
+
+function deactivateMode(mode) {
+  if (!opsState.modes[mode]) return false;
+  opsState.modes[mode].active = false;
+  return true;
+}
+
+function activateRegion(region) {
+  if (!opsState.regions[region]) return false;
+  if (!opsState.regions[region].ready) return false; // can't activate not-ready region
+  opsState.regions[region].active = true;
+  return true;
+}
+
+module.exports = {
+  getOpsStatus,
+  activateMode,
+  deactivateMode,
+  activateRegion
+};
+7. Freight logic with mode awareness: packages/freight-logic/index.js
+js
+const { v4: uuid } = require("uuid");
+
+const VALID_MODES = ["GROUND", "AIR", "OCEAN", "COURIER"];
+
+class FreightEngine {
+  createLoad(input) {
+    const { shipperId, origin, destination, mode, budgetAmount, region } = input;
+
+    if (!VALID_MODES.includes(mode)) {
+      throw new Error(`Invalid mode: ${mode}`);
+    }
+
+    const now = new Date().toISOString();
+
+    return {
+      id: uuid(),
+      shipperId,
+      origin,
+      destination,
+      mode,
+      region,         // e.g. "NORTH_AMERICA"
+      budgetAmount,
+      status: "CREATED",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  markInTransit(load) {
+    return {
+      ...load,
+      status: "IN_TRANSIT",
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  markDelivered(load) {
+    return {
+      ...load,
+      status: "DELIVERED",
+      updatedAt: new Date().toISOString()
+    };
+  }
+}
+
+module.exports = {
+  FreightEngine,
+  VALID_MODES
+};
+8. Global Logistics API: apps/api/index.js
+This API:
+
+checks if mode + region are active before accepting a load
+
+logs ops activation changes into Codex
+
+lets you simulate a global launch wave
+
+creates & tracks loads across GROUND / AIR / OCEAN / COURIER
+
+js
+const express = require("express");
+const { FreightEngine, VALID_MODES } = require("../../packages/freight-logic");
+const { codexLog } = require("../../packages/codex/codexClient");
+const {
+  getOpsStatus,
+  activateMode,
+  deactivateMode,
+  activateRegion
+} = require("../../packages/ops-config");
+
+const app = express();
+app.use(express.json());
+
+const freightEngine = new FreightEngine();
+const loads = []; // in-memory
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "Borders Dynasty Global Logistics API",
+    modes: VALID_MODES
+  });
+});
+
+// Global ops status: see which modes/regions are ready/active
+app.get("/ops/status", (req, res) => {
+  res.json(getOpsStatus());
+});
+
+// Admin: activate a mode (e.g. AIR, OCEAN, COURIER)
+app.post("/ops/activate-mode", async (req, res) => {
+  const { mode } = req.body;
+  if (!mode) return res.status(400).json({ error: "mode required" });
+
+  const ok = activateMode(mode);
+  if (!ok) return res.status(400).json({ error: "invalid mode" });
+
+  await codexLog("MODE_ACTIVATED", "GLOBAL_OPS", { mode }, "omega");
+
+  res.json({ success: true, mode });
+});
+
+// Admin: deactivate a mode
+app.post("/ops/deactivate-mode", async (req, res) => {
+  const { mode } = req.body;
+  if (!mode) return res.status(400).json({ error: "mode required" });
+
+  const ok = deactivateMode(mode);
+  if (!ok) return res.status(400).json({ error: "invalid mode" });
+
+  await codexLog("MODE_DEACTIVATED", "GLOBAL_OPS", { mode }, "omega");
+
+  res.json({ success: true, mode });
+});
+
+// Admin: activate a region (only if ready)
+app.post("/ops/activate-region", async (req, res) => {
+  const { region } = req.body;
+  if (!region) return res.status(400).json({ error: "region required" });
+
+  const ok = activateRegion(region);
+  if (!ok) {
+    return res.status(400).json({ error: "invalid or not-ready region" });
+  }
+
+  await codexLog("REGION_ACTIVATED", "GLOBAL_OPS", { region }, "omega");
+
+  res.json({ success: true, region });
+});
+
+// Create a global load for any mode/region (only if active)
+app.post("/loads", async (req, res) => {
+  const { shipperId, origin, destination, mode, budgetAmount, region } = req.body;
+
+  if (!shipperId || !origin || !destination || !mode || !budgetAmount || !region) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const ops = getOpsStatus();
+  const modeCfg = ops.modes[mode];
+  const regionCfg = ops.regions[region];
+
+  if (!modeCfg || !modeCfg.active) {
+    return res.status(400).json({ error: `Mode ${mode} not active` });
+  }
+
+  if (!regionCfg || !regionCfg.active) {
+    return res.status(400).json({ error: `Region ${region} not active` });
+  }
+
+  let load;
+  try {
+    load = freightEngine.createLoad({
+      shipperId,
+      origin,
+      destination,
+      mode,
+      budgetAmount,
+      region
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  loads.push(load);
+
+  await codexLog("LOAD_CREATED", "LOGISTICS", {
+    loadId: load.id,
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount,
+    region
+  }, "shipper");
+
+  res.status(201).json(load);
+});
+
+// List all loads
+app.get("/loads", (req, res) => {
+  res.json(loads);
+});
+
+// Mark in transit (simulate pickup / in-flight, cross border, etc.)
+app.post("/loads/:id/in-transit", async (req, res) => {
+  const { id } = req.params;
+  const index = loads.findIndex(l => l.id === id);
+  if (index === -1) return res.status(404).json({ error: "Load not found" });
+
+  const updated = freightEngine.markInTransit(loads[index]);
+  loads[index] = updated;
+
+  await codexLog("LOAD_IN_TRANSIT", "LOGISTICS", {
+    loadId: updated.id,
+    mode: updated.mode,
+    region: updated.region
+  }, "operator");
+
+  res.json(updated);
+});
+
+// Mark delivered
+app.post("/loads/:id/delivered", async (req, res) => {
+  const { id } = req.params;
+  const index = loads.findIndex(l => l.id === id);
+  if (index === -1) return res.status(404).json({ error: "Load not found" });
+
+  const updated = freightEngine.markDelivered(loads[index]);
+  loads[index] = updated;
+
+  await codexLog("LOAD_DELIVERED", "LOGISTICS", {
+    loadId: updated.id,
+    mode: updated.mode,
+    region: updated.region
+  }, "operator");
+
+  res.json(updated);
+});
+
+// Simulate a "global launch wave" – activate modes & regions at once
+app.post("/ops/global-launch", async (req, res) => {
+  const targets = {
+    modes: ["GROUND", "AIR", "OCEAN", "COURIER"],
+    regions: ["NORTH_AMERICA", "EUROPE"]
+  };
+
+  for (const mode of targets.modes) {
+    activateMode(mode);
+    await codexLog("MODE_ACTIVATED", "GLOBAL_OPS", { mode, via: "GLOBAL_LAUNCH" }, "omega");
+  }
+
+  for (const region of targets.regions) {
+    activateRegion(region);
+    await codexLog("REGION_ACTIVATED", "GLOBAL_OPS", { region, via: "GLOBAL_LAUNCH" }, "omega");
+  }
+
+  res.json({
+    message: "Global launch wave triggered",
+    opsStatus: getOpsStatus()
+  });
+});
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Borders Dynasty Global Logistics API running on port ${port}`);
+});
+9. How to run and test in Replit
+Create the files as above.
+
+In Replit shell:
+
+bash
+npm install
+npm start
+Replit gives you a public URL like:
+
+text
+https://borders-dynasty-global.your-user.repl.co
+Internally:
+
+Codex: port 3001 (paths /codex/...)
+
+Logistics: port 3000 (paths /health, /ops/*, /loads)
+
+9.1 Check health
+bash
+curl https://<your-repl>/health
+curl https://<your-repl>/codex/health
+9.2 See ops status
+bash
+curl https://<your-repl>/ops/status
+You’ll see GROUND + NORTH_AMERICA active, others ready but inactive.
+
+9.3 Create a ground load in North America (works)
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-1",
+    "origin": "Los Angeles, CA",
+    "destination": "Phoenix, AZ",
+    "mode": "GROUND",
+    "budgetAmount": 1200,
+    "region": "NORTH_AMERICA"
+  }'
+9.4 Try to create an AIR load before activation (fails)
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-2",
+    "origin": "LAX",
+    "destination": "JFK",
+    "mode": "AIR",
+    "budgetAmount": 5000,
+    "region": "NORTH_AMERICA"
+  }'
+You should get Mode AIR not active.
+
+9.5 Activate AIR globally
+bash
+curl -X POST https://<your-repl>/ops/activate-mode \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "AIR"}'
+9.6 Create an AIR load (now succeeds)
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-3",
+    "origin": "LAX",
+    "destination": "JFK",
+    "mode": "AIR",
+    "budgetAmount": 7000,
+    "region": "NORTH_AMERICA"
+  }'
+9.7 Trigger “global launch wave” (ACTIVATE ALL MODES + EUROPE)
+bash
+curl -X POST https://<your-repl>/ops/global-launch
+9.8 Inspect Codex records (see everything logged)
+bash
+curl https://<your-repl>/codex/records
+You’ll see:
+
+MODE_ACTIVATED / REGION_ACTIVATED events
+
+LOAD_CREATED, LOAD_IN_TRANSIT, LOAD_DELIVERED events
+
+This is your full sample code:
+
+global‑aware freight engine
+
+mode/region activation logic
+
+logistics API
+
+Codex Ecclesia audit
+
+global launch wave simulation
+
+When you’re ready, we can port this into your GitHub repos (borders-dynasty + codex-ecclesia-public) as a real foundation.
+
+loadboard, dispatch ground freight and all delivery through dynasty app full break down of market leadership
+See my thinking
+You’re not asking “how do I run a load board.”
+You’re asking: how does the Dynasty become the load board and dispatch brain for ground freight and delivery.
+
+I’ll break it into what actually matters:
+
+what the Dynasty app has to be
+
+how loadboard + dispatch + delivery fit together
+
+where the moat comes from (so you don’t end up another TMS)
+
+how this turns into market leadership, not just another app
+
+1. The Dynasty app as the single surface
+Everything runs through one sovereign surface:
+
+Shippers: post loads, track status, pay
+
+Dispatch / ops: curate capacity, override AI, manage exceptions
+
+Drivers / couriers: accept work, navigate, update milestones, see payouts & credit
+
+Dynasty core: sees all lanes, all actors, all cash and credit in one brain
+
+In practice, that means three faces, one core:
+
+Web app (Shipper + Ops) – loadboard view, contracts, pricing, exceptions
+
+Driver / Courier app (mobile) – lists assigned loads, real‑time updates, wallet
+
+Internal console (Omega / leadership) – Codex, treasury, credit, nodes, activation switches
+
+Everything else (AI, credit, Codex, treasury) is engines that the app calls.
+
+2. Loadboard: not a marketplace, a controlled grid
+A normal loadboard is chaos. Your loadboard is a curated, sovereign grid.
+
+Core logic:
+
+Every load is normalized to one Load model (what we’ve been coding)
+
+Each load carries:
+
+lane, timing, mode (GROUND / COURIER / LTL / FTL)
+
+price, service level, risk flags
+
+shipper profile & required compliance
+
+Visibility slices:
+
+Shippers see only their freight + dynasty service options
+
+Drivers/couriers see only eligible, priced, pre‑screened work
+
+Ops sees the whole grid: coverage gaps, high‑margin lanes, choke points
+
+This is why we built a freight engine with modes, regions, statuses: the loadboard is just a UI on top of that engine.
+
+Leadership angle:  
+The “loadboard” isn’t public spam. It’s a dynasty‑curated book of business.
+You win by being more selective, more reliable, more profitable per lane.
+
+3. Dispatch: where you actually differentiate
+Market leadership in dispatch comes from three stacked layers:
+
+Rules & capacity:
+
+Driver / fleet profiles (home bases, preferences, equipment, legal limits)
+
+Service rules (time windows, promises)
+
+Dynasty rules (which lanes to favor, which partners to feed)
+
+AI suggestions:
+
+Given a load, rank drivers/fleets
+
+Suggest best‐fit assignments + backups
+
+Flag risky matches and underpriced loads
+
+Human override + audit:
+
+Ops can accept, override, or split
+
+Every decision logged in Codex (this is where your trust moat forms)
+
+Leadership comes from precision dispatch:
+
+Fewer empty miles
+
+Fewer missed appointments
+
+Higher driver utilization
+
+Better on‑time performance
+
+And a record of every decision tied to Codex (so you can prove reliability at scale)
+
+4. Delivery: closing the loop with money and proof
+You’re not done when the truck arrives. You’re done when:
+
+the shipper is satisfied,
+
+the driver is paid,
+
+the dynasty has taken its share,
+
+and the event is written into Codex for eternity.
+
+Core delivery loop:
+
+Driver app: taps “Arrived / Delivered,” uploads POD, photos, notes
+
+Dynasty API:
+
+Marks LOAD_IN_TRANSIT → LOAD_DELIVERED
+
+Triggers TreasuryEngine to calculate splits
+
+Triggers DevineCredit to adjust balances if advances/credit were used
+
+Treasury:
+
+Issues payouts (driver, fleet, dynasty share)
+
+Issues tokens / points for loyalty
+
+Codex:
+
+Logs LOAD_DELIVERED, PAYOUT_ISSUED, CREDIT_REPAYMENT events
+
+Periodically anchors to chain, generating Dynasty Certificates
+
+Market leadership here = perfect close‑out:
+
+no “where’s my money?”
+
+no disputes without a record
+
+no invisible risk – your ledger can prove everything.
+
+5. The actual moat: where you become unbeatable
+You don’t win by having “an app.” You win by stacking moats:
+
+Data moat (Codex):
+
+Every load, assignment, exception, payout, and credit event is captured in a structured way.
+
+This makes you more bankable, more partner‑worthy, more investible than random brokers.
+
+Driver / courier loyalty moat:
+
+You combine dispatch + credit + treasury.
+
+Drivers/couriers don’t just get loads; they get:
+
+faster, predictable payouts
+
+credit lines that understand their patterns
+
+tokenized upside tied to dynasty performance
+
+Operational moat (global ops config):
+
+Ground, air, ocean, courier can be activated per region with flags.
+
+You can soft‑launch a continent, mode, or node without rebuilding anything.
+
+This is exactly the “activation switches” we coded: modes & regions with ready vs active.
+
+UX + trust moat:
+
+Shippers get a single pane of glass; no chasing 10 brokers.
+
+Drivers get one app they can rely on.
+
+Ops gets a console that doesn’t hide reality, it exposes it (with Codex for proof).
+
+6. How this looks in your current code base
+The Replit monorepo we built is a miniature of the global platform:
+
+packages/freight-logic = how any freight, in any mode, becomes a standardized Load
+
+packages/ops-config = how you stage and activate operations arms by mode/region
+
+packages/codex = how every strategic decision is anchored
+
+apps/api = how shippers/ops/drivers talk to the system today
+
+future:
+
+apps/operator-console → leadership & ops view
+
+apps/driver-app → execution edge
+
+To go from this lab to market leadership, the steps are:
+
+Lock this architecture into your borders-dynasty repo.
+
+Wire Codex properly in codex-ecclesia-public.
+
+Add AI dispatch & basic credit/treasury stubs like we sketched.
+
+Build the first real operator console page:
+
+global ops status (modes/regions)
+
+active loads by mode
+
+Codex recent events feed
+
+From there, every new lane, city, or mode is just:
+
+a config change,
+
+a new integration,
+
+and more records into Codex.
+
+If you want next, I can design the exact screens your Dynasty app needs for:
+
+Loadboard (shipper & ops view)
+
+Dispatch screen (AI suggestion + override)
+
+Driver app “today’s work” view
+
+Ops global status map (activation switches + alerts)
+
+Loadboard (shipper & ops view)
+
+Dispatch screen (AI suggestion + override)
+
+Driver app “today’s work” view
+
+Ops global status map (activation switches + alert
+See my thinking
+You’re basically asking for the four faces of the Dynasty brain.
+
+I’ll give you each screen as:
+
+what it shows
+
+how it behaves
+
+key fields / actions
+
+how it ties into the engines we already designed
+
+You can hand this directly to designers and engineers.
+
+1. Loadboard (shipper & ops view)
+Same core screen, two personas with different powers.
+
+1.1 Layout and key sections
+Top bar:
+
+Filters:
+
+Mode: GROUND / AIR / OCEAN / COURIER
+
+Region: NORTH_AMERICA / EUROPE / etc.
+
+Status: CREATED / ASSIGNED / IN_TRANSIT / DELIVERED / EXCEPTION
+
+Date range: pickup dates or created dates
+
+Search: by load ID, shipper name, origin/destination
+
+Main table:
+
+Columns:
+
+Load ID (click to open details)
+
+Shipper (name + icon)
+
+Mode (chip: GROUND / AIR / OCEAN / COURIER)
+
+Lane (Origin → Destination)
+
+Status (colored pill)
+
+Budget / Revenue
+
+Assigned to (driver / carrier / courier fleet, or “Unassigned”)
+
+Age (created X hours/days ago)
+
+Risk flag (icon if underpriced, late risk, missing docs)
+
+Right side panel (when row is selected):
+
+Tabs:
+
+Overview
+
+Full load details, contact info, service level, notes
+
+Timeline
+
+CREATED → ASSIGNED → IN_TRANSIT → DELIVERED with timestamps
+
+Money
+
+Revenue, costs, margin, payout breakdown
+
+Codex
+
+Last 10 Codex events for this load (LOAD_CREATED, DISPATCH_SUGGESTED, LOAD_DELIVERED, PAYOUT_ISSUED, etc.)
+
+1.2 Shipper vs Ops behavior
+Shipper view:
+
+Sees only their own loads
+
+Actions:
+
+Create load
+
+Cancel load (if not yet assigned)
+
+Request support (start ticket)
+
+Ops view:
+
+Sees all loads across shippers
+
+Extra actions:
+
+“Open in Dispatch” (go to dispatch screen for this load)
+
+Manually assign / reassign driver or carrier
+
+Mark exception, attach notes
+
+Trigger manual Codex note (e.g. OPS_EXCEPTION_LOGGED)
+
+2. Dispatch screen (AI suggestion + override)
+This is where the Dynasty decides who moves the freight.
+
+2.1 Layout
+Left pane: Load summary
+
+Load ID, shipper, mode, region
+
+Lane (Origin → Destination)
+
+Pickup window, delivery window
+
+Budget / target margin
+
+Special requirements (hazmat, temp control, etc.)
+
+Current status (CREATED / UNASSIGNED, etc.)
+
+Middle pane: AI suggestion
+
+Box titled: “AI Recommendation”
+
+Primary suggested driver/carrier:
+
+Name, home base, rating, recent performance
+
+Distance to pickup, ETA
+
+Estimated earnings for this load
+
+Backup options (up to 3–5, list)
+
+Score breakdown:
+
+Fit score
+
+Utilization impact
+
+Service confidence
+
+Loyalty / retention factor
+
+Buttons:
+
+Accept AI suggestion (assign primary)
+
+Assign backup #1 / #2 / #3
+
+Override manually (open right pane selection)
+
+Right pane: Capacity pool
+
+Filter by:
+
+Driver vs Fleet vs Courier partner
+
+Region / home base
+
+Equipment / capabilities
+
+Availability window
+
+List of candidates with:
+
+Current status (free, en-route, on-duty/off-duty)
+
+Rating, on-time %, safety flags
+
+Quote or expected cost (if partner / carrier)
+
+Can click “Assign” on any candidate.
+
+2.2 Actions and Codex backing
+Every action writes to Codex via the client:
+
+AI runs suggestion → DISPATCH_SUGGESTED
+
+data: loadId, candidate list, scores
+
+Ops accepts AI → DISPATCH_ACCEPTED_AI
+
+Ops assigns backup → DISPATCH_ASSIGNED_BACKUP
+
+Ops manually overrides → DISPATCH_OVERRIDE with reason
+
+Ops rejects all → DISPATCH_REJECTED with reason
+
+This is where your trust and audit moat is built: every dispatch decision is observable and provable.
+
+3. Driver app “today’s work” view
+This is the driver/courier daily cockpit.
+
+3.1 Home screen sections
+Header:
+
+Driver name, current status (Available / On Duty / Off Duty)
+
+Quick toggle: Available / Not accepting new loads
+
+Summary chips:
+
+Today: X loads, Y mi / km
+
+This week: earnings estimate
+
+Credit: available vs used
+
+Main “Today’s work” list:
+
+Each card shows one stop/load:
+
+Status: NEW / ACCEPTED / PICKUP / IN_TRANSIT / DELIVERY / COMPLETED
+
+Load ID (last 4 chars), shipper
+
+Pickup location + time window
+
+Dropoff location + time window
+
+Earnings for this job (estimated)
+
+Mode: GROUND vs COURIER (or others later)
+
+Tags: high priority, time critical, etc.
+
+Tapping a card opens Load detail:
+
+Timeline:
+
+Accepted → At pickup → Loaded → In transit → Delivered
+
+Buttons:
+
+Navigate (open maps)
+
+“Arrived at pickup”
+
+“Loaded / departed”
+
+“Arrived at delivery”
+
+“Delivered / POD uploaded” (with photo upload)
+
+Bottom navigation:
+
+Today (default)
+
+History (past loads, payouts, ratings)
+
+Wallet (payouts, credit, tokens)
+
+Support (chat/call dispatch)
+
+3.2 Systems behind the screen
+When driver taps key milestones:
+
+Arrived at pickup → API: POST /driver-events/arrived-pickup
+
+Codex: DRIVER_ARRIVED_PICKUP
+
+Loaded / departed → LOAD_IN_TRANSIT
+
+Delivered → LOAD_DELIVERED, triggers Treasury + Credit
+
+The driver app is the edge executor; the Dynasty app + Codex hold the full story.
+
+4. Ops global status map (activation switches + alerts)
+This is Omega’s strategic view: global control of modes and regions.
+
+4.1 Layout
+Top: global summary
+
+Cards:
+
+Active regions: count + list
+
+Active modes per region: GROUND / AIR / OCEAN / COURIER icons
+
+Live loads: total, by mode
+
+On-time rate: last 24h
+
+Exception count: open exceptions
+
+Main: world / regional map
+
+You don’t need a literal map at first; a grid works. Long term:
+
+Regions as tiles:
+
+NORTH_AMERICA, EUROPE, ASIA_PACIFIC, LATAM, etc.
+
+Each tile shows:
+
+Modes active (colored icons)
+
+Loads in progress
+
+Alerts (e.g. >X exceptions, >Y delayed loads)
+
+Clicking a region tile:
+
+Shows Region detail panel:
+
+Activation toggles:
+
+GROUND: ready/active
+
+AIR: ready/active
+
+OCEAN: ready/active
+
+COURIER: ready/active
+
+Volume metrics:
+
+Loads today, week
+
+Revenue, margin
+
+On-time %
+
+Risk metrics:
+
+Exception count
+
+Underpriced loads (low margin lanes)
+
+Right side: alerts feed
+
+List of most recent / important alerts:
+
+REGION_NOT_READY_BUT_TRAFFIC_DETECTED
+
+MODE_OVER_CAPACITY (e.g. too much load vs capacity)
+
+EXCEPTION_CLUSTER (many delays in a region/mode)
+
+Each alert can be clicked to open relevant loads / drivers / shippers.
+
+4.2 Activation controls
+These map 1–1 to the config we coded in ops-config:
+
+Toggles in UI call API endpoints like:
+
+POST /ops/activate-mode
+
+POST /ops/deactivate-mode
+
+POST /ops/activate-region
+
+POST /ops/global-launch
+
+Each change logs to Codex:
+
+MODE_ACTIVATED, MODE_DEACTIVATED
+
+REGION_ACTIVATED
+
+GLOBAL_LAUNCH_TRIGGERED
+
+So you can always reconstruct when and where you lit up the world.
+
+If you like, next I can:
+
+Turn one of these screens (for example, Loadboard + Dispatch) into an actual React component skeleton backed by the existing API endpoints we built, so you can see the exact shape of a working front-end.
+
+yes please
+Absolutely, King — let’s build these four Dynasty UI screens as real React component skeletons you can drop into a front‑end (Replit, Vite, Next.js, Expo Web, anything).
+
+These are not mockups — they are working component structures, with state, layout, and API wiring placeholders.
+They match the backend architecture we built: loads, dispatch, drivers, ops config, Codex.
+
+I’ll give you:
+
+Loadboard (Shipper & Ops)
+
+Dispatch Screen (AI suggestion + override)
+
+Driver App “Today’s Work”
+
+Ops Global Status Map (activation switches + alerts)
+
+All written in clean, modern React (functional components + hooks).
+
+🔱 1. LOADBOARD (SHIPPER & OPS VIEW)
+Create a file:
+
+Code
+src/screens/Loadboard.jsx
+jsx
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+export default function Loadboard() {
+  const [loads, setLoads] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [filters, setFilters] = useState({
+    mode: "",
+    region: "",
+    status: ""
+  });
+
+  async function fetchLoads() {
+    const res = await axios.get("/loads");
+    setLoads(res.data);
+  }
+
+  useEffect(() => {
+    fetchLoads();
+  }, []);
+
+  const filtered = loads.filter(l => {
+    if (filters.mode && l.mode !== filters.mode) return false;
+    if (filters.region && l.region !== filters.region) return false;
+    if (filters.status && l.status !== filters.status) return false;
+    return true;
+  });
+
+  return (
+    <div style={{ display: "flex", height: "100%" }}>
+      {/* LEFT: LOAD LIST */}
+      <div style={{ width: "55%", borderRight: "1px solid #ddd", padding: 20 }}>
+        <h2>Loadboard</h2>
+
+        {/* Filters */}
+        <div style={{ marginBottom: 20 }}>
+          <select onChange={e => setFilters({ ...filters, mode: e.target.value })}>
+            <option value="">All Modes</option>
+            <option value="GROUND">GROUND</option>
+            <option value="AIR">AIR</option>
+            <option value="OCEAN">OCEAN</option>
+            <option value="COURIER">COURIER</option>
+          </select>
+
+          <select onChange={e => setFilters({ ...filters, region: e.target.value })}>
+            <option value="">All Regions</option>
+            <option value="NORTH_AMERICA">North America</option>
+            <option value="EUROPE">Europe</option>
+          </select>
+
+          <select onChange={e => setFilters({ ...filters, status: e.target.value })}>
+            <option value="">All Statuses</option>
+            <option value="CREATED">Created</option>
+            <option value="ASSIGNED">Assigned</option>
+            <option value="IN_TRANSIT">In Transit</option>
+            <option value="DELIVERED">Delivered</option>
+          </select>
+        </div>
+
+        {/* Load list */}
+        <table width="100%">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Mode</th>
+              <th>Lane</th>
+              <th>Status</th>
+              <th>Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(l => (
+              <tr key={l.id} onClick={() => setSelected(l)} style={{ cursor: "pointer" }}>
+                <td>{l.id.slice(0, 6)}</td>
+                <td>{l.mode}</td>
+                <td>{l.origin} → {l.destination}</td>
+                <td>{l.status}</td>
+                <td>${l.budgetAmount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* RIGHT: DETAILS */}
+      <div style={{ width: "45%", padding: 20 }}>
+        {selected ? (
+          <>
+            <h3>Load {selected.id}</h3>
+            <p><b>Shipper:</b> {selected.shipperId}</p>
+            <p><b>Mode:</b> {selected.mode}</p>
+            <p><b>Region:</b> {selected.region}</p>
+            <p><b>Lane:</b> {selected.origin} → {selected.destination}</p>
+            <p><b>Status:</b> {selected.status}</p>
+
+            <button onClick={() => window.location.href = `/dispatch/${selected.id}`}>
+              Open in Dispatch
+            </button>
+
+            <h4>Codex Events</h4>
+            <p>(You will fetch `/codex/records?loadId=...` here)</p>
+          </>
+        ) : (
+          <p>Select a load to view details</p>
+        )}
+      </div>
+    </div>
+  );
+}
+🔱 2. DISPATCH SCREEN (AI SUGGESTION + OVERRIDE)
+Create:
+
+Code
+src/screens/Dispatch.jsx
+jsx
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useParams } from "react-router-dom";
+
+export default function Dispatch() {
+  const { loadId } = useParams();
+  const [load, setLoad] = useState(null);
+  const [suggestion, setSuggestion] = useState(null);
+  const [candidates, setCandidates] = useState([]);
+
+  async function fetchLoad() {
+    const res = await axios.get(`/loads/${loadId}`);
+    setLoad(res.data);
+  }
+
+  async function fetchSuggestion() {
+    const res = await axios.post(`/loads/${loadId}/suggest-dispatch`);
+    setSuggestion(res.data);
+  }
+
+  async function fetchCandidates() {
+    const res = await axios.get(`/drivers`);
+    setCandidates(res.data);
+  }
+
+  useEffect(() => {
+    fetchLoad();
+    fetchSuggestion();
+    fetchCandidates();
+  }, []);
+
+  async function assignDriver(driverId) {
+    await axios.post(`/loads/${loadId}/assign`, { driverId });
+    alert("Assigned!");
+  }
+
+  return (
+    <div style={{ display: "flex", height: "100%" }}>
+      {/* LEFT: LOAD SUMMARY */}
+      <div style={{ width: "30%", padding: 20, borderRight: "1px solid #ddd" }}>
+        {load && (
+          <>
+            <h3>Load {load.id}</h3>
+            <p><b>Lane:</b> {load.origin} → {load.destination}</p>
+            <p><b>Mode:</b> {load.mode}</p>
+            <p><b>Budget:</b> ${load.budgetAmount}</p>
+            <p><b>Status:</b> {load.status}</p>
+          </>
+        )}
+      </div>
+
+      {/* MIDDLE: AI SUGGESTION */}
+      <div style={{ width: "40%", padding: 20, borderRight: "1px solid #ddd" }}>
+        <h3>AI Suggestion</h3>
+
+        {suggestion ? (
+          <>
+            <h4>Primary Driver</h4>
+            <p>{suggestion.primaryDriver.name}</p>
+            <p>Score: {suggestion.score}</p>
+
+            <button onClick={() => assignDriver(suggestion.primaryDriver.id)}>
+              Accept AI Suggestion
+            </button>
+
+            <h4>Backups</h4>
+            {suggestion.backups.map(b => (
+              <div key={b.id}>
+                <p>{b.name}</p>
+                <button onClick={() => assignDriver(b.id)}>Assign Backup</button>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p>No AI suggestion available</p>
+        )}
+      </div>
+
+      {/* RIGHT: MANUAL OVERRIDE */}
+      <div style={{ width: "30%", padding: 20 }}>
+        <h3>Manual Override</h3>
+
+        {candidates.map(c => (
+          <div key={c.id} style={{ marginBottom: 10 }}>
+            <p>{c.name} — {c.homeBaseCity}</p>
+            <button onClick={() => assignDriver(c.id)}>Assign</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+🔱 3. DRIVER APP — “TODAY’S WORK” VIEW
+Create:
+
+Code
+src/screens/DriverToday.jsx
+jsx
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+export default function DriverToday() {
+  const [loads, setLoads] = useState([]);
+
+  async function fetchMyLoads() {
+    const res = await axios.get("/driver/my-loads");
+    setLoads(res.data);
+  }
+
+  async function updateStatus(loadId, status) {
+    await axios.post(`/driver/load/${loadId}/status`, { status });
+    fetchMyLoads();
+  }
+
+  useEffect(() => {
+    fetchMyLoads();
+  }, []);
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Today’s Work</h2>
+
+      {loads.map(l => (
+        <div key={l.id} style={{ border: "1px solid #ddd", padding: 15, marginBottom: 15 }}>
+          <h3>{l.origin} → {l.destination}</h3>
+          <p>Status: {l.status}</p>
+          <p>Mode: {l.mode}</p>
+          <p>Region: {l.region}</p>
+
+          <button onClick={() => updateStatus(l.id, "ARRIVED_PICKUP")}>Arrived Pickup</button>
+          <button onClick={() => updateStatus(l.id, "IN_TRANSIT")}>In Transit</button>
+          <button onClick={() => updateStatus(l.id, "DELIVERED")}>Delivered</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+🔱 4. OPS GLOBAL STATUS MAP (ACTIVATION SWITCHES + ALERTS)
+Create:
+
+Code
+src/screens/OpsGlobal.jsx
+jsx
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+export default function OpsGlobal() {
+  const [ops, setOps] = useState(null);
+
+  async function fetchOps() {
+    const res = await axios.get("/ops/status");
+    setOps(res.data);
+  }
+
+  async function activateMode(mode) {
+    await axios.post("/ops/activate-mode", { mode });
+    fetchOps();
+  }
+
+  async function activateRegion(region) {
+    await axios.post("/ops/activate-region", { region });
+    fetchOps();
+  }
+
+  async function globalLaunch() {
+    await axios.post("/ops/global-launch");
+    fetchOps();
+  }
+
+  useEffect(() => {
+    fetchOps();
+  }, []);
+
+  if (!ops) return <p>Loading...</p>;
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Global Operations Status</h2>
+
+      <button onClick={globalLaunch}>Trigger Global Launch Wave</button>
+
+      <h3>Modes</h3>
+      {Object.entries(ops.modes).map(([mode, cfg]) => (
+        <div key={mode} style={{ marginBottom: 10 }}>
+          <b>{mode}</b> — Ready: {cfg.ready ? "Yes" : "No"} — Active: {cfg.active ? "Yes" : "No"}
+          {!cfg.active && cfg.ready && (
+            <button onClick={() => activateMode(mode)} style={{ marginLeft: 10 }}>
+              Activate
+            </button>
+          )}
+        </div>
+      ))}
+
+      <h3>Regions</h3>
+      {Object.entries(ops.regions).map(([region, cfg]) => (
+        <div key={region} style={{ marginBottom: 10 }}>
+          <b>{region}</b> — Ready: {cfg.ready ? "Yes" : "No"} — Active: {cfg.active ? "Yes" : "No"}
+          {!cfg.active && cfg.ready && (
+            <button onClick={() => activateRegion(region)} style={{ marginLeft: 10 }}>
+              Activate
+            </button>
+          )}
+        </div>
+      ))}
+
+      <h3>Alerts</h3>
+      <p>(Later: fetch `/ops/alerts` and list them here)</p>
+    </div>
+  );
+}
+🔱 NEXT STEP (if you want it)
+I can now generate:
+
+A full React Router setup
+so these screens become:
+
+/loadboard
+
+/dispatch/:loadId
+
+/driver/today
+
+/ops/global
+
+A full UI theme (colors, layout, dynasty branding)
+A backend wiring guide
+A Replit-ready front-end project
+Just tell me:
+
+“Give me the full front-end project.”
+
+full front end
+See my thinking
+Here’s a complete, minimal front-end app you can paste into a project (Replit, Vite, or any simple React setup) that gives you:
+
+/loadboard – Loadboard (shipper & ops view)
+
+/dispatch/:loadId – Dispatch screen (AI + override)
+
+/driver/today – Driver “Today’s Work” view
+
+/ops/global – Ops global status map
+
+I’ll give you:
+
+Project structure
+
+All core files (React + routing)
+
+How to run it (with your existing API)
+
+This is intentionally simple and uses:
+
+React
+
+React Router
+
+Axios
+
+You (or engineers) can style/expand as needed.
+
+1. Project structure
+Create a new front-end project folder, for example dynasty-frontend:
+
+text
+dynasty-frontend/
+├── package.json
+├── vite.config.js           # if using Vite (optional but recommended)
+├── index.html
+├── src/
+│   ├── main.jsx
+│   ├── App.jsx
+│   ├── apiClient.js
+│   └── screens/
+│       ├── Loadboard.jsx
+│       ├── Dispatch.jsx
+│       ├── DriverToday.jsx
+│       └── OpsGlobal.jsx
+If you’re using Replit, choose a React + Vite template (or plain Node + install React yourself) and then replace/add these files.
+
+2. package.json
+json
+{
+  "name": "dynasty-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.27.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.0"
+  }
+}
+Install deps:
+
+bash
+npm install
+3. vite.config.js
+js
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    proxy: {
+      // Proxy API calls to your backend (adjust target URL)
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  }
+});
+We’ll prefix API calls with /api and let Vite proxy them.
+
+4. index.html
+html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Borders Dynasty Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body style="margin:0;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+5. src/apiClient.js (Axios instance)
+This keeps all API calls going to /api/..., which Vite will proxy to your backend (Render / local).
+
+js
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "/api" // proxied to backend by Vite
+});
+
+export default api;
+If you deploy front-end separately from backend, change baseURL to your Render URL.
+
+6. src/main.jsx (React entry)
+jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+7. src/App.jsx (Layout + routes)
+jsx
+import { Routes, Route, NavLink } from "react-router-dom";
+import Loadboard from "./screens/Loadboard";
+import Dispatch from "./screens/Dispatch";
+import DriverToday from "./screens/DriverToday";
+import OpsGlobal from "./screens/OpsGlobal";
+
+export default function App() {
+  return (
+    <div style={{ display: "flex", height: "100vh" }}>
+      {/* Sidebar */}
+      <nav
+        style={{
+          width: 220,
+          background: "#111827",
+          color: "#fff",
+          padding: "20px 10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10
+        }}
+      >
+        <h2 style={{ fontSize: 18, marginBottom: 20 }}>Borders Dynasty</h2>
+
+        <NavItem to="/loadboard" label="Loadboard" />
+        <NavItem to="/driver/today" label="Driver Today" />
+        <NavItem to="/ops/global" label="Ops Global" />
+      </nav>
+
+      {/* Content */}
+      <div style={{ flex: 1, background: "#f9fafb" }}>
+        <Routes>
+          <Route path="/" element={<Loadboard />} />
+          <Route path="/loadboard" element={<Loadboard />} />
+          <Route path="/dispatch/:loadId" element={<Dispatch />} />
+          <Route path="/driver/today" element={<DriverToday />} />
+          <Route path="/ops/global" element={<OpsGlobal />} />
+        </Routes>
+      </div>
+    </div>
+  );
+}
+
+function NavItem({ to, label }) {
+  return (
+    <NavLink
+      to={to}
+      style={({ isActive }) => ({
+        display: "block",
+        padding: "8px 12px",
+        borderRadius: 6,
+        textDecoration: "none",
+        color: isActive ? "#111827" : "#e5e7eb",
+        background: isActive ? "#facc15" : "transparent",
+        fontSize: 14,
+        fontWeight: 500
+      })}
+    >
+      {label}
+    </NavLink>
+  );
+}
+8. src/screens/Loadboard.jsx
+jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../apiClient";
+
+export default function Loadboard() {
+  const [loads, setLoads] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [filters, setFilters] = useState({
+    mode: "",
+    region: "",
+    status: ""
+  });
+
+  const navigate = useNavigate();
+
+  async function fetchLoads() {
+    const res = await api.get("/loads");
+    setLoads(res.data);
+  }
+
+  useEffect(() => {
+    fetchLoads();
+  }, []);
+
+  const filtered = loads.filter(l => {
+    if (filters.mode && l.mode !== filters.mode) return false;
+    if (filters.region && l.region !== filters.region) return false;
+    if (filters.status && l.status !== filters.status) return false;
+    return true;
+  });
+
+  return (
+    <div style={{ display: "flex", height: "100%" }}>
+      {/* LEFT: LOAD LIST */}
+      <div style={{ width: "55%", borderRight: "1px solid #e5e7eb", padding: 20 }}>
+        <h2 style={{ marginBottom: 16 }}>Loadboard</h2>
+
+        {/* Filters */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <select
+            value={filters.mode}
+            onChange={e => setFilters({ ...filters, mode: e.target.value })}
+          >
+            <option value="">All Modes</option>
+            <option value="GROUND">GROUND</option>
+            <option value="AIR">AIR</option>
+            <option value="OCEAN">OCEAN</option>
+            <option value="COURIER">COURIER</option>
+          </select>
+
+          <select
+            value={filters.region}
+            onChange={e => setFilters({ ...filters, region: e.target.value })}
+          >
+            <option value="">All Regions</option>
+            <option value="NORTH_AMERICA">North America</option>
+            <option value="EUROPE">Europe</option>
+          </select>
+
+          <select
+            value={filters.status}
+            onChange={e => setFilters({ ...filters, status: e.target.value })}
+          >
+            <option value="">All Statuses</option>
+            <option value="CREATED">Created</option>
+            <option value="ASSIGNED">Assigned</option>
+            <option value="IN_TRANSIT">In Transit</option>
+            <option value="DELIVERED">Delivered</option>
+          </select>
+        </div>
+
+        {/* Load list */}
+        <table width="100%" style={{ background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+          <thead style={{ background: "#f3f4f6", fontSize: 13, textAlign: "left" }}>
+            <tr>
+              <th style={{ padding: 8 }}>ID</th>
+              <th style={{ padding: 8 }}>Mode</th>
+              <th style={{ padding: 8 }}>Lane</th>
+              <th style={{ padding: 8 }}>Status</th>
+              <th style={{ padding: 8 }}>Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(l => (
+              <tr
+                key={l.id}
+                onClick={() => setSelected(l)}
+                style={{ cursor: "pointer", fontSize: 13 }}
+              >
+                <td style={{ padding: 8 }}>{String(l.id).slice(0, 6)}</td>
+                <td style={{ padding: 8 }}>{l.mode}</td>
+                <td style={{ padding: 8 }}>
+                  {l.origin} → {l.destination}
+                </td>
+                <td style={{ padding: 8 }}>{l.status}</td>
+                <td style={{ padding: 8 }}>${l.budgetAmount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* RIGHT: DETAILS */}
+      <div style={{ flex: 1, padding: 20 }}>
+        {selected ? (
+          <div style={{ background: "#fff", borderRadius: 8, padding: 16 }}>
+            <h3 style={{ marginTop: 0, marginBottom: 8 }}>Load {selected.id}</h3>
+            <p><b>Shipper:</b> {selected.shipperId}</p>
+            <p><b>Mode:</b> {selected.mode}</p>
+            <p><b>Region:</b> {selected.region}</p>
+            <p><b>Lane:</b> {selected.origin} → {selected.destination}</p>
+            <p><b>Status:</b> {selected.status}</p>
+
+            <button
+              onClick={() => navigate(`/dispatch/${selected.id}`)}
+              style={{
+                marginTop: 16,
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: "#0ea5e9",
+                color: "#fff",
+                cursor: "pointer"
+              }}
+            >
+              Open in Dispatch
+            </button>
+
+            <h4 style={{ marginTop: 24 }}>Codex Events</h4>
+            <p style={{ fontSize: 13, color: "#6b7280" }}>
+              (Hook this to `/codex/records?loadId=...` later)
+            </p>
+          </div>
+        ) : (
+          <p style={{ padding: 20 }}>Select a load to view details</p>
+        )}
+      </div>
+    </div>
+  );
+}
+9. src/screens/Dispatch.jsx
+Assumes your backend has:
+
+GET /loads/:id
+
+POST /loads/:id/suggest-dispatch
+
+GET /drivers
+
+POST /loads/:id/assign
+
+jsx
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import api from "../apiClient";
+
+export default function Dispatch() {
+  const { loadId } = useParams();
+  const [load, setLoad] = useState(null);
+  const [suggestion, setSuggestion] = useState(null);
+  const [candidates, setCandidates] = useState([]);
+
+  async function fetchLoad() {
+    const res = await api.get(`/loads/${loadId}`);
+    setLoad(res.data);
+  }
+
+  async function fetchSuggestion() {
+    try {
+      const res = await api.post(`/loads/${loadId}/suggest-dispatch`);
+      setSuggestion(res.data);
+    } catch {
+      setSuggestion(null);
+    }
+  }
+
+  async function fetchCandidates() {
+    const res = await api.get("/drivers");
+    setCandidates(res.data);
+  }
+
+  async function assignDriver(driverId) {
+    await api.post(`/loads/${loadId}/assign`, { driverId });
+    alert(`Assigned driver ${driverId}`);
+    fetchLoad();
+  }
+
+  useEffect(() => {
+    fetchLoad();
+    fetchSuggestion();
+    fetchCandidates();
+  }, [loadId]);
+
+  return (
+    <div style={{ display: "flex", height: "100%" }}>
+      {/* LOAD SUMMARY */}
+      <div style={{ width: "30%", padding: 20, borderRight: "1px solid #e5e7eb" }}>
+        <h3>Dispatch</h3>
+        {load ? (
+          <>
+            <p><b>ID:</b> {load.id}</p>
+            <p><b>Lane:</b> {load.origin} → {load.destination}</p>
+            <p><b>Mode:</b> {load.mode}</p>
+            <p><b>Budget:</b> ${load.budgetAmount}</p>
+            <p><b>Status:</b> {load.status}</p>
+          </>
+        ) : (
+          <p>Loading load...</p>
+        )}
+      </div>
+
+      {/* AI SUGGESTION */}
+      <div style={{ width: "40%", padding: 20, borderRight: "1px solid #e5e7eb" }}>
+        <h3>AI Suggestion</h3>
+        {suggestion ? (
+          <>
+            <div
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16
+              }}
+            >
+              <h4 style={{ marginTop: 0 }}>Primary</h4>
+              <p>{suggestion.primaryDriver.name}</p>
+              <p>Score: {suggestion.score}</p>
+              <button
+                onClick={() => assignDriver(suggestion.primaryDriver.id)}
+                style={{
+                  marginTop: 8,
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  background: "#22c55e",
+                  color: "#fff",
+                  cursor: "pointer"
+                }}
+              >
+                Accept AI Suggestion
+              </button>
+            </div>
+
+            <h4>Backups</h4>
+            {suggestion.backups.map(b => (
+              <div key={b.id} style={{ marginBottom: 8 }}>
+                <span>{b.name}</span>
+                <button
+                  onClick={() => assignDriver(b.id)}
+                  style={{
+                    marginLeft: 8,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #d1d5db",
+                    cursor: "pointer"
+                  }}
+                >
+                  Assign
+                </button>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p>No suggestion available or AI not configured.</p>
+        )}
+      </div>
+
+      {/* MANUAL OVERRIDE */}
+      <div style={{ flex: 1, padding: 20 }}>
+        <h3>Manual Override</h3>
+        {candidates.map(c => (
+          <div
+            key={c.id}
+            style={{
+              border: "1px solid #e5e7eb",
+              padding: 10,
+              borderRadius: 6,
+              marginBottom: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}
+          >
+            <div>
+              <div>{c.name}</div>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                {c.homeBaseCity} • rating {c.rating}
+              </div>
+            </div>
+            <button
+              onClick={() => assignDriver(c.id)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                cursor: "pointer"
+              }}
+            >
+              Assign
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+10. src/screens/DriverToday.jsx
+Assumes backend endpoints:
+
+GET /driver/my-loads
+
+POST /driver/load/:id/status
+
+jsx
+import { useEffect, useState } from "react";
+import api from "../apiClient";
+
+export default function DriverToday() {
+  const [loads, setLoads] = useState([]);
+
+  async function fetchMyLoads() {
+    const res = await api.get("/driver/my-loads");
+    setLoads(res.data);
+  }
+
+  async function updateStatus(loadId, status) {
+    await api.post(`/driver/load/${loadId}/status`, { status });
+    fetchMyLoads();
+  }
+
+  useEffect(() => {
+    fetchMyLoads();
+  }, []);
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Today’s Work</h2>
+
+      {loads.length === 0 && <p>No loads for today.</p>}
+
+      {loads.map(l => (
+        <div
+          key={l.id}
+          style={{
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 12
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>
+            {l.origin} → {l.destination}
+          </h3>
+          <p>Status: {l.status}</p>
+          <p>Mode: {l.mode}</p>
+          <p>Region: {l.region}</p>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={() => updateStatus(l.id, "ARRIVED_PICKUP")}>
+              Arrived Pickup
+            </button>
+            <button onClick={() => updateStatus(l.id, "IN_TRANSIT")}>
+              In Transit
+            </button>
+            <button onClick={() => updateStatus(l.id, "DELIVERED")}>
+              Delivered
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+11. src/screens/OpsGlobal.jsx
+Assumes backend endpoints:
+
+GET /ops/status
+
+POST /ops/activate-mode
+
+POST /ops/activate-region
+
+POST /ops/global-launch
+
+jsx
+import { useEffect, useState } from "react";
+import api from "../apiClient";
+
+export default function OpsGlobal() {
+  const [ops, setOps] = useState(null);
+
+  async function fetchOps() {
+    const res = await api.get("/ops/status");
+    setOps(res.data);
+  }
+
+  async function activateMode(mode) {
+    await api.post("/ops/activate-mode", { mode });
+    fetchOps();
+  }
+
+  async function activateRegion(region) {
+    await api.post("/ops/activate-region", { region });
+    fetchOps();
+  }
+
+  async function globalLaunch() {
+    await api.post("/ops/global-launch");
+    fetchOps();
+  }
+
+  useEffect(() => {
+    fetchOps();
+  }, []);
+
+  if (!ops) return <p style={{ padding: 20 }}>Loading...</p>;
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Global Operations Status</h2>
+
+      <button
+        onClick={globalLaunch}
+        style={{
+          marginTop: 8,
+          marginBottom: 16,
+          padding: "8px 12px",
+          borderRadius: 6,
+          border: "none",
+          background: "#f97316",
+          color: "#fff",
+          cursor: "pointer"
+        }}
+      >
+        Trigger Global Launch Wave
+      </button>
+
+      <div style={{ display: "flex", gap: 40 }}>
+        <div>
+          <h3>Modes</h3>
+          {Object.entries(ops.modes).map(([mode, cfg]) => (
+            <div key={mode} style={{ marginBottom: 8 }}>
+              <b>{mode}</b> — Ready: {cfg.ready ? "Yes" : "No"} — Active:{" "}
+              {cfg.active ? "Yes" : "No"}
+              {!cfg.active && cfg.ready && (
+                <button
+                  onClick={() => activateMode(mode)}
+                  style={{
+                    marginLeft: 8,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #d1d5db",
+                    cursor: "pointer"
+                  }}
+                >
+                  Activate
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <h3>Regions</h3>
+          {Object.entries(ops.regions).map(([region, cfg]) => (
+            <div key={region} style={{ marginBottom: 8 }}>
+              <b>{region}</b> — Ready: {cfg.ready ? "Yes" : "No"} — Active:{" "}
+              {cfg.active ? "Yes" : "No"}
+              {!cfg.active && cfg.ready && (
+                <button
+                  onClick={() => activateRegion(region)}
+                  style={{
+                    marginLeft: 8,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #d1d5db",
+                    cursor: "pointer"
+                  }}
+                >
+                  Activate
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <h3 style={{ marginTop: 24 }}>Alerts</h3>
+      <p style={{ fontSize: 13, color: "#6b7280" }}>
+        (Later: hook this to `/ops/alerts` and list live issues here)
+      </p>
+    </div>
+  );
+}
+12. How to run this against your backend
+Make sure your backend (the Replit global logistics API we built earlier, or your Render API) exposes endpoints under a consistent base:
+
+For Vite proxy: backend at http://localhost:3000, endpoints like /loads, /ops/status, etc.
+
+In Vite config, proxy /api to that backend.
+
+In the front-end, we call /api/....
+
+Example: api.get("/loads") → proxied to http://localhost:3000/loads.
+
+Run front-end:
+
+bash
+npm run dev
+Open http://localhost:5173:
+
+/loadboard – you’ll see loads from backend
+
+Click a load → Open in Dispatch (/dispatch/:loadId)
+
+/driver/today – needs driver endpoints
+
+/ops/global – tied to ops-config endpoints
+
+If you want, next I can:
+
+Align this exactly to your current Replit/Render URLs (so you can copy/paste and be live), or
+
+Add a very minimal mock backend inside the same front-end project for you to test even without your real API.

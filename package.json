@@ -19,7 +19,8 @@
     "prepare": "husky install",
     "compile": "hardhat compile",
     "sync:abis": "node scripts/syncAbis.cjs",
-    "compile:sync": "npm run compile && npm run sync:abis"
+    "compile:sync": "npm run compile && npm run sync:abis",
+    "db:push": "drizzle-kit push"
   },
   "repository": {
     "type": "git",
@@ -74,10 +75,14 @@
     "@openzeppelin/contracts": "^5.0.0",
     "@openzeppelin/contracts-upgradeable": "^5.0.0",
     "@openzeppelin/hardhat-upgrades": "^3.9.1",
+    "@types/pg": "^8.16.0",
     "css-loader": "^7.1.2",
     "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.1",
     "ethers": "^6.13.5",
     "globals": "^16.5.0",
+    "pg": "^8.16.3",
     "style-loader": "^4.0.0"
   }
 }

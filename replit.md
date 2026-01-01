@@ -115,6 +115,13 @@ Start both with: `node server.cjs`
 - **DynasticIdentity.sol**: Soulbound NFT for royal titles and sovereign recognition
 - **ScrollHashRegistry.sol**: On-chain document verification via keccak256 hashes
 
+## Database
+PostgreSQL database with Drizzle ORM for persistent storage:
+- `shared/schema.ts` - Drizzle schema definitions (loads, drivers, contracts, credit lines, payouts)
+- `server/db.ts` - Database connection pool
+- `drizzle.config.ts` - Drizzle Kit configuration
+- Run `npm run db:push` to sync schema changes
+
 ## Development
 - Run `npm run dev` to start the webpack dev server on port 5000
 - Run `npm run build` to create production bundle in `dist/`
