@@ -1,6 +1,7 @@
 {
   "name": "@kingsmoovedap-design/borders-dynasty",
   "version": "1.0.0",
+  "type": "module",
   "description": "CodexChain frontend",
   "main": "dist/bundle.js",
   "engines": {
@@ -9,15 +10,15 @@
   "scripts": {
     "prebuild": "npm run lint",
     "start": "node dist/bundle.js",
-    "dev": "webpack serve --mode development",
-    "build": "webpack",
+    "dev": "webpack serve --mode development --config webpack.config.cjs",
+    "build": "webpack --config webpack.config.cjs",
     "test": "node test/api.test.js",
     "test:health": "node test/health.test.js",
-    "lint": "eslint . --ext .js --ignore-pattern dist/",
+    "lint": "eslint .",
     "hardhat": "hardhat",
     "prepare": "husky install",
     "compile": "hardhat compile",
-    "sync:abis": "node scripts/syncAbis.js",
+    "sync:abis": "node scripts/syncAbis.cjs",
     "compile:sync": "npm run compile && npm run sync:abis"
   },
   "repository": {
@@ -76,6 +77,7 @@
     "css-loader": "^7.1.2",
     "dotenv": "^17.2.3",
     "ethers": "^6.13.5",
+    "globals": "^16.5.0",
     "style-loader": "^4.0.0"
   }
 }
