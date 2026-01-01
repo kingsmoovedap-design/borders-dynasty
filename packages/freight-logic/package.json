@@ -1,0 +1,9 @@
+{
+  "name": "@borders/freight-logic",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "uuid": "^9.0.1"
+  }
+}

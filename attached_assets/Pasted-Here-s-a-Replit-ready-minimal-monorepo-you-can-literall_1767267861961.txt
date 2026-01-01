@@ -1,0 +1,412 @@
+Here’s a Replit‑ready, minimal “monorepo” you can literally:
+
+Create a new Node.js  Replit
+
+Paste these files into it
+
+Run npm install → npm start
+
+Hit endpoints and see Codex + Logistics working together
+
+Everything is in one Replit project, but the folders are shaped like a future monorepo (apps + packages), so you can later move this into borders-dynasty.
+
+1. File/folder layout
+In your Replit project, create this structure:
+
+text
+.
+├── package.json
+├── index.js            # root starter (starts both services)
+├── apps/
+│   └── api/
+│       └── index.js    # Logistics API
+└── packages/
+    ├── freight-logic/
+    │   └── index.js    # Freight logic
+    └── codex/
+        ├── codexService.js  # Codex Ecclesia service
+        └── codexClient.js   # Client used by Logistics API
+I’ll give you the content for each file below.
+
+2. package.json (root)
+Create package.json in the root:
+
+json
+{
+  "name": "borders-dynasty-replit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.19.0",
+    "uuid": "^9.0.1"
+  }
+}
+In Replit, after creating these files, open the shell and run:
+
+bash
+npm install
+3. Root starter: index.js
+This file starts both:
+
+Codex Ecclesia service (on port 3001)
+
+Logistics API (on port 3000)
+
+Create index.js in the root:
+
+js
+// Root starter: starts Codex service AND Logistics API
+
+// Start Codex Ecclesia service
+require("./packages/codex/codexService");
+
+// Start Logistics API
+require("./apps/api/index");
+Replit will run this when you click “Run”.
+
+4. Codex service: packages/codex/codexService.js
+This is your Codex Ecclesia mock: it receives records and anchors them.
+
+Create packages/codex/codexService.js:
+
+js
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.json());
+
+const codexRecords = [];
+const anchors = [];
+
+function computeHash(obj) {
+  const str = JSON.stringify(obj);
+  return crypto.createHash("sha256").update(str).digest("hex");
+}
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Codex Ecclesia" });
+});
+
+app.post("/codex/records", (req, res) => {
+  const { type, module, actor, data } = req.body;
+
+  if (!type || !module) {
+    return res.status(400).json({ error: "type and module are required" });
+  }
+
+  const timestamp = new Date().toISOString();
+  const prev = codexRecords[codexRecords.length - 1];
+
+  const record = {
+    id: codexRecords.length + 1,
+    type,
+    module,
+    actor: actor || "system",
+    timestamp,
+    data: data || {},
+    prevHash: prev ? prev.hash : null
+  };
+
+  record.hash = computeHash(record);
+  codexRecords.push(record);
+
+  console.log("[CODEX] New record:", record);
+
+  res.status(201).json(record);
+});
+
+app.get("/codex/records", (req, res) => {
+  res.json(codexRecords);
+});
+
+app.post("/codex/anchors", (req, res) => {
+  if (codexRecords.length === 0) {
+    return res.status(400).json({ error: "No records to anchor" });
+  }
+
+  const rootHash = computeHash(codexRecords);
+  const anchor = {
+    id: anchors.length + 1,
+    rootHash,
+    timestamp: new Date().toISOString()
+    // later: chain, txHash
+  };
+
+  anchors.push(anchor);
+  console.log("[ANCHOR] New anchor:", anchor);
+
+  res.status(201).json(anchor);
+});
+
+app.get("/codex/anchors", (req, res) => {
+  res.json(anchors);
+});
+
+const port = 3001;
+app.listen(port, () => {
+  console.log(`Codex Ecclesia running on port ${port}`);
+});
+In Replit, Codex will be accessible at:
+
+https://<your-repl>/codex/records
+
+https://<your-repl>/codex/anchors
+
+(same host, but internally on port 3001).
+
+5. Codex client: packages/codex/codexClient.js
+This is what the Logistics API uses to write Codex records.
+
+Create packages/codex/codexClient.js:
+
+js
+const axios = require("axios");
+
+// In Replit, both services share the same host. We just hit the paths.
+// We don't need the actual port here because Replit proxies traffic,
+// but locally we could use http://localhost:3001
+const CODEX_BASE = process.env.CODEX_URL || "http://localhost:3001";
+
+/**
+ * Log a record to Codex Ecclesia
+ * @param {string} type
+ * @param {string} moduleName
+ * @param {object} data
+ * @param {string} actor
+ */
+async function codexLog(type, moduleName, data = {}, actor = "system") {
+  try {
+    const url = `${CODEX_BASE}/codex/records`;
+    const res = await axios.post(url, {
+      type,
+      module: moduleName,
+      actor,
+      data
+    });
+
+    console.log("[CODEX_LOG_SUCCESS]", {
+      type,
+      module: moduleName,
+      id: res.data.id,
+      hash: res.data.hash
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("[CODEX_LOG_ERROR]", {
+      message: err.message,
+      type,
+      module: moduleName
+    });
+    return null;
+  }
+}
+
+module.exports = { codexLog };
+For Replit, it’s fine to leave CODEX_BASE as http://localhost:3001 because inside the container that works; externally Replit proxies to one public URL.
+
+6. Freight logic: packages/freight-logic/index.js
+This is the core of how a load is created and tracked.
+
+Create packages/freight-logic/index.js:
+
+js
+const { v4: uuid } = require("uuid");
+
+class FreightEngine {
+  createLoad(input) {
+    const { shipperId, origin, destination, mode, budgetAmount } = input;
+    const now = new Date().toISOString();
+
+    return {
+      id: uuid(),
+      shipperId,
+      origin,
+      destination,
+      mode,           // "GROUND" | "AIR" | "OCEAN" | "RAIL"
+      budgetAmount,
+      status: "CREATED",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  markDelivered(load) {
+    return {
+      ...load,
+      status: "DELIVERED",
+      updatedAt: new Date().toISOString()
+    };
+  }
+}
+
+module.exports = { FreightEngine };
+7. Logistics API: apps/api/index.js
+This is your Borders Dynasty Logistics API that:
+
+creates loads
+
+lists loads
+
+marks them delivered
+
+sends Codex events for each major action
+
+Create apps/api/index.js:
+
+js
+const express = require("express");
+const { FreightEngine } = require("../../packages/freight-logic");
+const { codexLog } = require("../../packages/codex/codexClient");
+
+const app = express();
+app.use(express.json());
+
+const freightEngine = new FreightEngine();
+
+// In-memory for demo
+const loads = [];
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "Borders Dynasty Logistics API" });
+});
+
+// Create a load
+app.post("/loads", async (req, res) => {
+  const { shipperId, origin, destination, mode, budgetAmount } = req.body;
+
+  if (!shipperId || !origin || !destination || !mode || !budgetAmount) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const load = freightEngine.createLoad({
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount
+  });
+
+  loads.push(load);
+
+  // Log in Codex
+  await codexLog("LOAD_CREATED", "LOGISTICS", {
+    loadId: load.id,
+    shipperId,
+    origin,
+    destination,
+    mode,
+    budgetAmount
+  }, "shipper");
+
+  res.status(201).json(load);
+});
+
+// List loads
+app.get("/loads", (req, res) => {
+  res.json(loads);
+});
+
+// Mark delivered
+app.post("/loads/:id/delivered", async (req, res) => {
+  const { id } = req.params;
+  const loadIndex = loads.findIndex(l => l.id === id);
+
+  if (loadIndex === -1) {
+    return res.status(404).json({ error: "Load not found" });
+  }
+
+  const delivered = freightEngine.markDelivered(loads[loadIndex]);
+  loads[loadIndex] = delivered;
+
+  // Log in Codex
+  await codexLog("LOAD_DELIVERED", "LOGISTICS", {
+    loadId: delivered.id
+  }, "operator");
+
+  res.json(delivered);
+});
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Logistics API running on port ${port}`);
+});
+8. How to run and test in Replit
+Make sure all files are created as above.
+
+In the Replit shell:
+
+bash
+npm install
+npm start
+Replit will expose a single public URL, something like:
+
+text
+https://borders-dynasty-replit.your-user.repl.co
+Internally:
+
+Codex listens on port 3001
+
+Logistics API listens on port 3000
+
+But from the outside, Replit proxies both through the same base URL, differentiated by paths:
+
+Health checks
+Logistics API:
+GET https://<your-repl>/health  
+(served by the Logistics app)
+
+Codex:
+GET https://<your-repl>/codex/records  
+(proxied to the Codex service on 3001)
+
+Create a load
+bash
+curl -X POST https://<your-repl>/loads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipperId": "SHIPPER-1",
+    "origin": "Los Angeles, CA",
+    "destination": "Phoenix, AZ",
+    "mode": "GROUND",
+    "budgetAmount": 1200
+  }'
+You should see a JSON load with an id.
+
+List loads
+bash
+curl https://<your-repl>/loads
+See Codex records
+bash
+curl https://<your-repl>/codex/records
+You should see entries for LOAD_CREATED and, after marking delivered, LOAD_DELIVERED.
+
+9. How to move this into your GitHub repos later
+Copy apps/api into borders-dynasty/apps/api
+
+Copy packages/freight-logic and packages/codex into borders-dynasty/packages
+
+Replace the Replit root index.js with a proper apps/api entry, and treat Codex as a separate service in codex-ecclesia-public
+
+But for now, you have a single Replit lab where:
+
+A logistics API runs
+
+Codex Ecclesia runs
+
+Events are logged
+
+Architecture is shaped like your future monorepo
+
+If you want, next I can add:
+
+A tiny AI dispatch stub into packages/ai-dispatch
+
+A Devine Credit stub into packages/devine-credit
+
+And show you how to call them from the same Replit environment.

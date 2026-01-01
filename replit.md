@@ -44,6 +44,21 @@ A Web3 DeFi sovereign blockchain platform for the CodexChain/Borders Dynasty eco
 
 ## Environment Variables
 - `CODEX_URL` - URL of Codex Ecclesia service (default: http://localhost:3001)
+- `API_PORT` - Port for Logistics API (default: 3000)
+
+## Monorepo Services
+The project runs two services:
+- **Logistics API** (port 3000) - FreightEngine-powered load management
+- **Codex Ecclesia** (port 3001) - Hash-chain record keeping with anchoring
+
+Start both with: `node server.cjs`
+
+## Codex Ecclesia Endpoints
+- `GET /health` - Health check
+- `POST /codex/records` - Create a hash-chained record
+- `GET /codex/records` - List all records
+- `POST /codex/anchors` - Create merkle root anchor
+- `GET /codex/anchors` - List all anchors
 
 ## Smart Contracts
 - **BordersSovereignCoin.sol**: Upgradeable ERC20 with MINTER_ROLE, GUARD_ROLE, blacklist, pausable, 1M cap

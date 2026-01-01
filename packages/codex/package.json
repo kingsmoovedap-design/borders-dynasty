@@ -1,0 +1,10 @@
+{
+  "name": "@borders/codex",
+  "version": "1.0.0",
+  "main": "codexClient.js",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.19.0"
+  }
+}
