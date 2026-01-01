@@ -120,3 +120,76 @@ The platform is built as a monorepo containing multiple services and packages.
 - `GET /crosschain/bridge` - Get bridge status and planned chains
 - `GET /crosschain/tokenomics` - Get BSC tokenomics
 - `GET /crosschain/roadmap` - Get complete cross-chain roadmap
+
+## Reverse Logistics API Endpoints
+- `GET /returns/reasons` - List return reasons (Damaged, Wrong Item, Defective, etc.)
+- `GET /returns/statuses` - List return statuses (RMA Issued, In Transit, Inspecting, etc.)
+- `GET /returns/dispositions` - List disposition types (Restock, Refurbish, Liquidate, etc.)
+- `GET /returns/centers` - List return processing centers
+- `POST /returns/initiate` - Initiate a return request (auth required)
+- `POST /returns/:returnId/rma` - Issue RMA for return (auth required)
+- `POST /returns/:returnId/label` - Generate return shipping label (auth required)
+- `POST /returns/:returnId/pickup` - Schedule return pickup (auth required)
+- `PUT /returns/:returnId/status` - Update return status (auth required)
+- `POST /returns/:returnId/inspect` - Record inspection results (auth required)
+- `POST /returns/:returnId/approve` - Approve return for refund (auth required)
+- `POST /returns/:returnId/refund` - Process refund (auth required)
+- `POST /returns/:returnId/dispose` - Process item disposition (auth required)
+- `GET /returns/:returnId` - Get return details
+- `GET /returns/rma/:rmaNumber` - Look up return by RMA number
+- `GET /returns` - List returns with filters
+- `GET /returns/analytics/summary` - Get return analytics
+
+## Courier Hub API Endpoints
+- `GET /courier/types` - List courier types (Independent, Fleet, Bike Messenger, etc.)
+- `GET /courier/vehicles` - List vehicle types (Bike, Car, Van, Box Truck, Drone, etc.)
+- `GET /courier/services` - List service levels (Same Day, Rush, Express, Standard, etc.)
+- `GET /courier/zones` - List delivery zones (NYC, LA, Chicago, London, Singapore, etc.)
+- `GET /courier/onboarding/steps` - List 10-step onboarding process
+- `POST /courier/register` - Register new courier for onboarding
+- `POST /courier/:courierId/onboarding/:stepId` - Complete onboarding step (auth required)
+- `POST /courier/:courierId/vehicle` - Register vehicle (auth required)
+- `PUT /courier/:courierId/vehicle/:vehicleId/location` - Update vehicle location (auth required)
+- `PUT /courier/:courierId/vehicle/:vehicleId/availability` - Set availability (auth required)
+- `POST /courier/rate/calculate` - Calculate delivery rate
+- `POST /courier/delivery` - Create delivery request (auth required)
+- `POST /courier/delivery/:deliveryId/assign` - Assign delivery to courier (auth required)
+- `PUT /courier/delivery/:deliveryId/status` - Update delivery status (auth required)
+- `GET /courier/available` - Find available couriers by zone/vehicle/service
+- `GET /courier/:courierId` - Get courier details
+- `GET /courier/:courierId/vehicles` - Get courier vehicles
+- `GET /courier` - List couriers with filters
+- `GET /courier/deliveries` - List deliveries with filters
+- `GET /courier/analytics` - Get courier analytics
+
+## Universal Contract Capture API Endpoints
+- `GET /universal/systems` - List 20 connected logistics systems (DAT, Truckstop, Flexport, etc.)
+- `GET /universal/contract-types` - List contract types (Spot, Dedicated, Annual, etc.)
+- `GET /universal/priorities` - List capture priorities
+- `GET /universal/scoring` - Get scoring factors and weights
+- `GET /universal/rules` - List capture rules
+- `POST /universal/rules` - Add capture rule (auth required)
+- `POST /universal/scan` - Scan all systems for contracts (auth required)
+- `POST /universal/score` - Score contract for Dynasty fit
+- `POST /universal/capture` - Capture qualified contract (auth required)
+- `POST /universal/:captureId/allocate` - Allocate to partner (auth required)
+- `POST /universal/:captureId/route` - Route to loadboard (auth required)
+- `GET /universal/captured` - List captured contracts with filters
+- `GET /universal/partner/:partnerId/allocations` - Get partner allocations
+- `GET /universal/stats` - Get capture statistics
+
+## Multimodal Distribution API Endpoints
+- `GET /distribution/modes` - List 6 distribution modes (Ground, Ocean, Air, Courier, Rail, Intermodal)
+- `GET /distribution/partner-types` - List 9 partner types (Carrier, Broker, Forwarder, etc.)
+- `GET /distribution/strategies` - List 6 distribution strategies (Cost, Time, Balanced, etc.)
+- `POST /distribution/partner` - Register distribution partner (auth required)
+- `GET /distribution/partner/:partnerId` - Get partner details
+- `GET /distribution/partners` - List partners with filters
+- `POST /distribution/find-partners` - Find eligible partners for load
+- `POST /distribution/distribute` - Distribute load to partner (auth required)
+- `POST /distribution/auto-distribute` - Auto-distribute multiple loads (auth required)
+- `POST /distribution/route-to-loadboard` - Route contracts to loadboard (auth required)
+- `GET /distribution/loads` - List distributed loads
+- `GET /distribution/utilization` - Get partner utilization
+- `GET /distribution/analytics` - Get distribution analytics
+- `GET /distribution/queue` - Get routing queue

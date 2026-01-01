@@ -87,6 +87,10 @@ const knowledgeCorpus = require("../../../packages/knowledge-corpus/index.cjs");
 const aiDispatchBrain = require("../../../packages/ai-dispatch-brain/index.cjs");
 const enhancedLoadboard = require("../../../packages/enhanced-loadboard/index.cjs");
 const crossChain = require("../../../packages/cross-chain-evolution/index.cjs");
+const reverseLogistics = require("../../../packages/reverse-logistics/index.cjs");
+const courierHub = require("../../../packages/courier-hub/index.cjs");
+const universalCapture = require("../../../packages/universal-capture/index.cjs");
+const multimodalDist = require("../../../packages/multimodal-distribution/index.cjs");
 
 const governanceClient = new GovernanceClient();
 const operatorPortal = new SingleOperatorPortal();
@@ -1998,6 +2002,446 @@ app.get("/crosschain/tokenomics", (req, res) => {
 
 app.get("/crosschain/roadmap", (req, res) => {
   res.json(crossChain.getCrossChainRoadmap());
+});
+
+app.get("/returns/reasons", (req, res) => {
+  res.json(reverseLogistics.getReturnReasons());
+});
+
+app.get("/returns/statuses", (req, res) => {
+  res.json(reverseLogistics.getReturnStatuses());
+});
+
+app.get("/returns/dispositions", (req, res) => {
+  res.json(reverseLogistics.getDispositionTypes());
+});
+
+app.get("/returns/centers", (req, res) => {
+  res.json(reverseLogistics.getReturnCenters());
+});
+
+app.post("/returns/initiate", authMiddleware(), async (req, res) => {
+  const { orderId, items, reason, customer } = req.body;
+  if (!orderId || !items || !reason) return res.status(400).json({ error: "orderId, items, and reason required" });
+  
+  const result = reverseLogistics.initiateReturn(orderId, items, reason, customer);
+  if (result.success) {
+    await codexLog("RETURN_INITIATED", "REVERSE_LOGISTICS", { returnId: result.return.id, orderId, reason }, "returns");
+  }
+  res.json(result);
+});
+
+app.post("/returns/:returnId/rma", authMiddleware(), async (req, res) => {
+  const { approvedItems } = req.body;
+  const result = reverseLogistics.issueRMA(req.params.returnId, approvedItems);
+  if (result.success) {
+    await codexLog("RMA_ISSUED", "REVERSE_LOGISTICS", { returnId: req.params.returnId, rma: result.return.rmaNumber }, "returns");
+  }
+  res.json(result);
+});
+
+app.post("/returns/:returnId/label", authMiddleware(), (req, res) => {
+  const { courierService } = req.body;
+  res.json(reverseLogistics.generateReturnLabel(req.params.returnId, courierService || 'DYNASTY_COURIER'));
+});
+
+app.post("/returns/:returnId/pickup", authMiddleware(), (req, res) => {
+  const pickupDetails = req.body;
+  res.json(reverseLogistics.schedulePickup(req.params.returnId, pickupDetails));
+});
+
+app.put("/returns/:returnId/status", authMiddleware(), async (req, res) => {
+  const { status, metadata } = req.body;
+  if (!status) return res.status(400).json({ error: "status required" });
+  
+  const result = reverseLogistics.updateReturnStatus(req.params.returnId, status, metadata);
+  if (result.success) {
+    await codexLog("RETURN_STATUS_UPDATE", "REVERSE_LOGISTICS", { returnId: req.params.returnId, status }, "returns");
+  }
+  res.json(result);
+});
+
+app.post("/returns/:returnId/inspect", authMiddleware(), (req, res) => {
+  const inspectionResults = req.body;
+  res.json(reverseLogistics.inspectReturn(req.params.returnId, inspectionResults));
+});
+
+app.post("/returns/:returnId/approve", authMiddleware(), async (req, res) => {
+  const { refundAmount } = req.body;
+  const result = reverseLogistics.approveReturn(req.params.returnId, refundAmount);
+  if (result.success) {
+    await codexLog("RETURN_APPROVED", "REVERSE_LOGISTICS", { returnId: req.params.returnId, refund: result.return.approvedRefund }, "returns");
+  }
+  res.json(result);
+});
+
+app.post("/returns/:returnId/refund", authMiddleware(), async (req, res) => {
+  const { refundMethod } = req.body;
+  const result = reverseLogistics.processRefund(req.params.returnId, refundMethod || 'ORIGINAL_PAYMENT');
+  if (result.success) {
+    await codexLog("REFUND_PROCESSED", "REVERSE_LOGISTICS", { returnId: req.params.returnId, transactionId: result.refund.transactionId }, "returns");
+  }
+  res.json(result);
+});
+
+app.post("/returns/:returnId/dispose", authMiddleware(), (req, res) => {
+  res.json(reverseLogistics.processDisposition(req.params.returnId));
+});
+
+app.get("/returns/:returnId", (req, res) => {
+  const returnData = reverseLogistics.getReturn(req.params.returnId);
+  if (!returnData) return res.status(404).json({ error: "Return not found" });
+  res.json(returnData);
+});
+
+app.get("/returns/rma/:rmaNumber", (req, res) => {
+  const returnData = reverseLogistics.getReturnByRMA(req.params.rmaNumber);
+  if (!returnData) return res.status(404).json({ error: "RMA not found" });
+  res.json(returnData);
+});
+
+app.get("/returns", (req, res) => {
+  const filters = {
+    status: req.query.status,
+    reason: req.query.reason,
+    centerId: req.query.centerId,
+    customerId: req.query.customerId,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(reverseLogistics.getReturns(filters));
+});
+
+app.get("/returns/analytics/summary", (req, res) => {
+  res.json(reverseLogistics.getReturnAnalytics(req.query.period || 'month'));
+});
+
+app.get("/courier/types", (req, res) => {
+  res.json(courierHub.getCourierTypes());
+});
+
+app.get("/courier/vehicles", (req, res) => {
+  res.json(courierHub.getVehicleTypes());
+});
+
+app.get("/courier/services", (req, res) => {
+  res.json(courierHub.getServiceLevels());
+});
+
+app.get("/courier/zones", (req, res) => {
+  res.json(courierHub.getDeliveryZones());
+});
+
+app.get("/courier/onboarding/steps", (req, res) => {
+  res.json(courierHub.getOnboardingSteps());
+});
+
+app.post("/courier/register", async (req, res) => {
+  const courierData = req.body;
+  if (!courierData.name || !courierData.email) return res.status(400).json({ error: "name and email required" });
+  
+  const result = courierHub.registerCourier(courierData);
+  if (result.success) {
+    await codexLog("COURIER_REGISTERED", "COURIER_HUB", { courierId: result.courier.id, type: result.courier.type.id }, "courier");
+  }
+  res.json(result);
+});
+
+app.post("/courier/:courierId/onboarding/:stepId", authMiddleware(), async (req, res) => {
+  const data = req.body;
+  const result = courierHub.completeOnboardingStep(req.params.courierId, req.params.stepId, data);
+  if (result.success && result.isComplete) {
+    await codexLog("COURIER_ACTIVATED", "COURIER_HUB", { courierId: req.params.courierId }, "courier");
+  }
+  res.json(result);
+});
+
+app.post("/courier/:courierId/vehicle", authMiddleware(), (req, res) => {
+  const vehicleData = req.body;
+  res.json(courierHub.registerVehicle(req.params.courierId, vehicleData));
+});
+
+app.put("/courier/:courierId/vehicle/:vehicleId/location", authMiddleware(), (req, res) => {
+  const location = req.body;
+  res.json(courierHub.updateCourierLocation(req.params.courierId, req.params.vehicleId, location));
+});
+
+app.put("/courier/:courierId/vehicle/:vehicleId/availability", authMiddleware(), (req, res) => {
+  const { isAvailable, zones } = req.body;
+  res.json(courierHub.setAvailability(req.params.courierId, req.params.vehicleId, isAvailable, zones));
+});
+
+app.post("/courier/rate/calculate", (req, res) => {
+  const { pickup, delivery, serviceLevel, vehicleType } = req.body;
+  if (!pickup || !delivery) return res.status(400).json({ error: "pickup and delivery required" });
+  res.json(courierHub.calculateDeliveryRate(pickup, delivery, serviceLevel, vehicleType));
+});
+
+app.post("/courier/delivery", authMiddleware(), async (req, res) => {
+  const deliveryData = req.body;
+  const result = courierHub.createDelivery(deliveryData);
+  if (result.success) {
+    await codexLog("DELIVERY_CREATED", "COURIER_HUB", { deliveryId: result.delivery.id }, "courier");
+  }
+  res.json(result);
+});
+
+app.post("/courier/delivery/:deliveryId/assign", authMiddleware(), async (req, res) => {
+  const { courierId, vehicleId } = req.body;
+  if (!courierId) return res.status(400).json({ error: "courierId required" });
+  
+  const result = courierHub.assignDelivery(req.params.deliveryId, courierId, vehicleId);
+  if (result.success) {
+    await codexLog("DELIVERY_ASSIGNED", "COURIER_HUB", { deliveryId: req.params.deliveryId, courierId }, "courier");
+  }
+  res.json(result);
+});
+
+app.put("/courier/delivery/:deliveryId/status", authMiddleware(), async (req, res) => {
+  const { status, metadata } = req.body;
+  if (!status) return res.status(400).json({ error: "status required" });
+  
+  const result = courierHub.updateDeliveryStatus(req.params.deliveryId, status, metadata);
+  if (result.success) {
+    await codexLog("DELIVERY_STATUS_UPDATE", "COURIER_HUB", { deliveryId: req.params.deliveryId, status }, "courier");
+  }
+  res.json(result);
+});
+
+app.get("/courier/available", (req, res) => {
+  const { zoneId, vehicleType, serviceLevel } = req.query;
+  res.json(courierHub.findAvailableCouriers(zoneId, vehicleType, serviceLevel));
+});
+
+app.get("/courier/:courierId", (req, res) => {
+  const courier = courierHub.getCourier(req.params.courierId);
+  if (!courier) return res.status(404).json({ error: "Courier not found" });
+  res.json(courier);
+});
+
+app.get("/courier/:courierId/vehicles", (req, res) => {
+  res.json(courierHub.getCourierVehicles(req.params.courierId));
+});
+
+app.get("/courier", (req, res) => {
+  const filters = {
+    status: req.query.status,
+    type: req.query.type,
+    zone: req.query.zone,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(courierHub.getCouriers(filters));
+});
+
+app.get("/courier/delivery/:deliveryId", (req, res) => {
+  const delivery = courierHub.getDelivery(req.params.deliveryId);
+  if (!delivery) return res.status(404).json({ error: "Delivery not found" });
+  res.json(delivery);
+});
+
+app.get("/courier/deliveries", (req, res) => {
+  const filters = {
+    status: req.query.status,
+    courierId: req.query.courierId,
+    zoneId: req.query.zoneId,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(courierHub.getDeliveries(filters));
+});
+
+app.get("/courier/analytics", (req, res) => {
+  res.json(courierHub.getCourierAnalytics());
+});
+
+app.get("/universal/systems", (req, res) => {
+  res.json(universalCapture.getLogisticsSystems());
+});
+
+app.get("/universal/contract-types", (req, res) => {
+  res.json(universalCapture.getContractTypes());
+});
+
+app.get("/universal/priorities", (req, res) => {
+  res.json(universalCapture.getCapturePriorities());
+});
+
+app.get("/universal/scoring", (req, res) => {
+  res.json(universalCapture.getScoringFactors());
+});
+
+app.get("/universal/rules", (req, res) => {
+  res.json(universalCapture.getCaptureRules());
+});
+
+app.post("/universal/rules", authMiddleware(), (req, res) => {
+  const rule = req.body;
+  if (!rule.id || !rule.name) return res.status(400).json({ error: "id and name required" });
+  res.json(universalCapture.addCaptureRule(rule));
+});
+
+app.post("/universal/scan", authMiddleware(), async (req, res) => {
+  const filters = req.body.filters || {};
+  const results = await universalCapture.scanAllSystems(filters);
+  await codexLog("UNIVERSAL_SCAN", "UNIVERSAL_CAPTURE", { systemsScanned: results.systemsScanned, contractsFound: results.contractsFound }, "universal-capture");
+  res.json(results);
+});
+
+app.post("/universal/score", (req, res) => {
+  const { contract, capabilities } = req.body;
+  if (!contract) return res.status(400).json({ error: "contract required" });
+  res.json(universalCapture.scoreContract(contract, capabilities || {}));
+});
+
+app.post("/universal/capture", authMiddleware(), async (req, res) => {
+  const { contract, score, reason } = req.body;
+  if (!contract || !score) return res.status(400).json({ error: "contract and score required" });
+  
+  const result = universalCapture.captureContract(contract, score, reason || 'MANUAL');
+  if (result.success) {
+    await codexLog("UNIVERSAL_CAPTURED", "UNIVERSAL_CAPTURE", { captureId: result.captured.id, source: contract.source }, "universal-capture");
+  }
+  res.json(result);
+});
+
+app.post("/universal/:captureId/allocate", authMiddleware(), async (req, res) => {
+  const { partnerId, partnerType } = req.body;
+  if (!partnerId || !partnerType) return res.status(400).json({ error: "partnerId and partnerType required" });
+  
+  const result = universalCapture.allocateToPartner(req.params.captureId, partnerId, partnerType);
+  if (result.success) {
+    await codexLog("CONTRACT_ALLOCATED", "UNIVERSAL_CAPTURE", { captureId: req.params.captureId, partnerId }, "universal-capture");
+  }
+  res.json(result);
+});
+
+app.post("/universal/:captureId/route", authMiddleware(), async (req, res) => {
+  const { loadboardView } = req.body;
+  const result = universalCapture.routeToLoadboard(req.params.captureId, loadboardView || 'DRIVER');
+  if (result.success) {
+    await codexLog("CONTRACT_ROUTED", "UNIVERSAL_CAPTURE", { captureId: req.params.captureId, dynastyLoadId: result.dynastyLoad.id }, "universal-capture");
+  }
+  res.json(result);
+});
+
+app.get("/universal/captured", (req, res) => {
+  const filters = {
+    status: req.query.status,
+    mode: req.query.mode,
+    minScore: req.query.minScore ? parseFloat(req.query.minScore) : undefined,
+    source: req.query.source,
+    partnerId: req.query.partnerId,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(universalCapture.getCapturedContracts(filters));
+});
+
+app.get("/universal/partner/:partnerId/allocations", (req, res) => {
+  res.json(universalCapture.getPartnerAllocations(req.params.partnerId));
+});
+
+app.get("/universal/stats", (req, res) => {
+  res.json(universalCapture.getCaptureStats());
+});
+
+app.get("/distribution/modes", (req, res) => {
+  res.json(multimodalDist.getDistributionModes());
+});
+
+app.get("/distribution/partner-types", (req, res) => {
+  res.json(multimodalDist.getPartnerTypes());
+});
+
+app.get("/distribution/strategies", (req, res) => {
+  res.json(multimodalDist.getDistributionStrategies());
+});
+
+app.post("/distribution/partner", authMiddleware(), async (req, res) => {
+  const partnerData = req.body;
+  if (!partnerData.name || !partnerData.type) return res.status(400).json({ error: "name and type required" });
+  
+  const result = multimodalDist.registerPartner(partnerData);
+  if (result.success) {
+    await codexLog("PARTNER_REGISTERED", "DISTRIBUTION", { partnerId: result.partner.id, type: result.partner.type.id }, "distribution");
+  }
+  res.json(result);
+});
+
+app.get("/distribution/partner/:partnerId", (req, res) => {
+  const partner = multimodalDist.getPartner(req.params.partnerId);
+  if (!partner) return res.status(404).json({ error: "Partner not found" });
+  res.json(partner);
+});
+
+app.get("/distribution/partners", (req, res) => {
+  const filters = {
+    type: req.query.type,
+    mode: req.query.mode,
+    status: req.query.status,
+    hasCapacity: req.query.hasCapacity === 'true',
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(multimodalDist.getPartners(filters));
+});
+
+app.post("/distribution/find-partners", (req, res) => {
+  const { load, strategy } = req.body;
+  if (!load) return res.status(400).json({ error: "load required" });
+  res.json(multimodalDist.findEligiblePartners(load, strategy || 'BALANCED'));
+});
+
+app.post("/distribution/distribute", authMiddleware(), async (req, res) => {
+  const { load, partnerId, metadata } = req.body;
+  if (!load || !partnerId) return res.status(400).json({ error: "load and partnerId required" });
+  
+  const result = multimodalDist.distributeLoad(load, partnerId, metadata);
+  if (result.success) {
+    await codexLog("LOAD_DISTRIBUTED", "DISTRIBUTION", { distributionId: result.distribution.id, partnerId }, "distribution");
+  }
+  res.json(result);
+});
+
+app.post("/distribution/auto-distribute", authMiddleware(), async (req, res) => {
+  const { loads, strategy } = req.body;
+  if (!loads || !Array.isArray(loads)) return res.status(400).json({ error: "loads array required" });
+  
+  const result = multimodalDist.autoDistribute(loads, strategy || 'BALANCED');
+  await codexLog("AUTO_DISTRIBUTION", "DISTRIBUTION", { distributed: result.distributed.length, unassigned: result.unassigned.length }, "distribution");
+  res.json(result);
+});
+
+app.post("/distribution/route-to-loadboard", authMiddleware(), async (req, res) => {
+  const { contracts, views } = req.body;
+  if (!contracts || !Array.isArray(contracts)) return res.status(400).json({ error: "contracts array required" });
+  
+  const result = multimodalDist.routeThroughLoadboard(contracts, views);
+  res.json(result);
+});
+
+app.get("/distribution/loads", (req, res) => {
+  const filters = {
+    partnerId: req.query.partnerId,
+    mode: req.query.mode,
+    status: req.query.status,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(multimodalDist.getDistributedLoads(filters));
+});
+
+app.get("/distribution/utilization", (req, res) => {
+  res.json(multimodalDist.getPartnerUtilization());
+});
+
+app.get("/distribution/analytics", (req, res) => {
+  res.json(multimodalDist.getDistributionAnalytics());
+});
+
+app.get("/distribution/queue", (req, res) => {
+  const filters = {
+    view: req.query.view,
+    mode: req.query.mode,
+    status: req.query.status,
+    limit: req.query.limit ? parseInt(req.query.limit) : 100
+  };
+  res.json(multimodalDist.getRoutingQueue(filters));
 });
 
 const port = process.env.API_PORT || 3000;
