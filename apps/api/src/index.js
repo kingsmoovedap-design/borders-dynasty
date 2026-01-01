@@ -11,6 +11,8 @@ const {
 const { TreasuryEngine, DYNASTY_FEE_PERCENT, BSC_CONTRACT } = require("../../../packages/treasury/index.cjs");
 const { DevineCredit, CREDIT_TIERS } = require("../../../packages/devine-credit/index.cjs");
 const { generateLaunchPlan, getLaunchChecklist, LAUNCH_STAGES } = require("../../../packages/ops-config/launchConfig.cjs");
+const { AIDispatchEngine } = require("../../../packages/ai-dispatch/index.cjs");
+const { Loadboard } = require("../../../packages/loadboard/index.cjs");
 
 const app = express();
 app.use(express.json());
@@ -18,8 +20,11 @@ app.use(express.json());
 const freightEngine = new FreightEngine();
 const treasuryEngine = new TreasuryEngine();
 const devineCredit = new DevineCredit();
+const aiDispatch = new AIDispatchEngine();
+const loadboard = new Loadboard();
 const loads = [];
 const drivers = new Map();
+const contracts = [];
 
 app.get("/health", (req, res) => {
   res.json({
@@ -402,6 +407,154 @@ app.get("/credit/lines", (req, res) => {
 
 app.get("/credit/transactions", (req, res) => {
   res.json(devineCredit.getTransactions());
+});
+
+app.get("/loadboard/shipper/:shipperId", (req, res) => {
+  const view = loadboard.getShipperView(loads, req.params.shipperId);
+  res.json(view);
+});
+
+app.get("/loadboard/driver/:driverId", (req, res) => {
+  const creditLine = devineCredit.getCreditLine(req.params.driverId);
+  const view = loadboard.getDriverView(loads, req.params.driverId, creditLine);
+  res.json(view);
+});
+
+app.get("/loadboard/ops", (req, res) => {
+  const view = loadboard.getOpsView(loads, getOpsStatus());
+  res.json(view);
+});
+
+app.get("/loadboard/omega", async (req, res) => {
+  const creditLines = devineCredit.getAllCreditLines();
+  const treasury = {
+    escrowBalance: treasuryEngine.getEscrowBalance(),
+    payoutCount: treasuryEngine.getAllPayouts().length
+  };
+  
+  const view = loadboard.getOmegaView(loads, getOpsStatus(), treasury, creditLines, 0);
+  res.json(view);
+});
+
+app.get("/dispatch/suggest/:loadId", (req, res) => {
+  const load = loads.find(l => l.id === req.params.loadId);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+
+  const allDrivers = Array.from(drivers.values());
+  const creditLines = devineCredit.getAllCreditLines();
+  
+  const suggestions = aiDispatch.suggestDrivers(allDrivers, load, creditLines);
+  res.json(suggestions);
+});
+
+app.get("/dispatch/evaluate/:loadId", (req, res) => {
+  const load = loads.find(l => l.id === req.params.loadId);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+
+  const analysis = aiDispatch.evaluateLoad(load);
+  res.json(analysis);
+});
+
+app.post("/dispatch/assign", async (req, res) => {
+  const { loadId, driverId, method, overrideReason } = req.body;
+
+  if (!loadId || !driverId) {
+    return res.status(400).json({ error: "loadId and driverId required" });
+  }
+
+  const loadIndex = loads.findIndex(l => l.id === loadId);
+  if (loadIndex === -1) return res.status(404).json({ error: "Load not found" });
+
+  if (!drivers.has(driverId)) {
+    return res.status(400).json({ error: "Driver not found" });
+  }
+
+  loads[loadIndex].driverId = driverId;
+  loads[loadIndex].status = "ASSIGNED";
+  loads[loadIndex].updatedAt = new Date().toISOString();
+
+  const dispatchRecord = aiDispatch.recordDispatch(
+    loadId, 
+    driverId, 
+    method || "MANUAL",
+    overrideReason
+  );
+
+  await codexLog("LOAD_DISPATCHED", "DISPATCH", {
+    loadId,
+    driverId,
+    method: dispatchRecord.method,
+    overrideReason: dispatchRecord.overrideReason
+  }, "dispatch");
+
+  res.json({
+    load: loads[loadIndex],
+    dispatchRecord
+  });
+});
+
+app.get("/dispatch/history", (req, res) => {
+  res.json(aiDispatch.getDispatchHistory());
+});
+
+app.post("/contract/accept", async (req, res) => {
+  const { loadId, driverId, terms } = req.body;
+
+  if (!loadId || !driverId) {
+    return res.status(400).json({ error: "loadId and driverId required" });
+  }
+
+  const load = loads.find(l => l.id === loadId);
+  if (!load) return res.status(404).json({ error: "Load not found" });
+
+  const contract = {
+    id: `CONTRACT-${Date.now()}`,
+    loadId,
+    driverId,
+    shipperId: load.shipperId,
+    amount: load.budgetAmount,
+    dynastyFee: load.budgetAmount * 0.05,
+    driverPayout: load.budgetAmount * 0.95,
+    terms: terms || {
+      paymentTerms: "ON_DELIVERY",
+      creditAdvanceAllowed: true,
+      maxAdvance: 200
+    },
+    status: "ACTIVE",
+    acceptedAt: new Date().toISOString()
+  };
+
+  contracts.push(contract);
+
+  const loadIndex = loads.findIndex(l => l.id === loadId);
+  if (loadIndex !== -1) {
+    loads[loadIndex].contractId = contract.id;
+  }
+
+  await codexLog("CONTRACT_ACCEPTED", "CONTRACTS", {
+    contractId: contract.id,
+    loadId,
+    driverId,
+    amount: contract.amount
+  }, "contract-system");
+
+  res.status(201).json(contract);
+});
+
+app.get("/contracts", (req, res) => {
+  res.json(contracts);
+});
+
+app.get("/contracts/:id", (req, res) => {
+  const contract = contracts.find(c => c.id === req.params.id);
+  if (!contract) return res.status(404).json({ error: "Contract not found" });
+  res.json(contract);
+});
+
+app.get("/contracts/load/:loadId", (req, res) => {
+  const contract = contracts.find(c => c.loadId === req.params.loadId);
+  if (!contract) return res.status(404).json({ error: "No contract for this load" });
+  res.json(contract);
 });
 
 const port = process.env.API_PORT || 3000;
