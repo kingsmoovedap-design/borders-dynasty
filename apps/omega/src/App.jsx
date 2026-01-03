@@ -1,3 +1,15 @@
+import { useEffect } from "react";
+import "./dashboard.js";
+
+export default function App() {
+  useEffect(() => {
+    if (window.init) window.init();
+  }, []);
+
+  return (
+    <div id="app"></div>
+  );
+}
 import React, { useState, useEffect, useCallback } from 'react';
 import { Route, Switch, Link, useLocation } from 'wouter';
 import * as api from './api';
