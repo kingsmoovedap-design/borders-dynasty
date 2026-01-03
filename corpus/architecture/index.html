@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dynasty OS – Token Architecture & App Integration</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; padding: 24px; max-width: 960px; margin: 0 auto; }
+    h1, h2, h3 { margin-top: 1.5em; }
+    code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
+    .file-label { font-size: 0.9em; color: #666; margin-bottom: 0.25rem; }
+    hr { margin: 2rem 0; }
+    ul { margin-top: 0.35rem; }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================
+       FILE 1: /corpus/treasury/token_roles.html
+       ========================================= -->
+
+  <div class="file-label">/corpus/treasury/token_roles.html</div>
+  <h1>Dynasty OS – Token Roles & Cross‑Chain Harmony</h1>
+
+  <p>
+    This document defines the conceptual roles of the Dynasty OS token pair and how they interoperate across chains
+    to form a coherent, perpetual, cross‑chain economic system for the Logistics Dynasty. It is architectural and
+    conceptual only, not legal, financial, or investment advice.
+  </p>
+
+  <h2>1. Token Pair Overview</h2>
+
+  <h3>1.1 Token A – Dynasty Utility (BSC)</h3>
+  <ul>
+    <li><strong>Chain:</strong> BNB Smart Chain (BSC)</li>
+    <li><strong>Standard:</strong> BEP‑20 (EVM‑compatible)</li>
+    <li><strong>Role:</strong> Operational utility, rewards, in‑app economic fuel</li>
+    <li><strong>Primary Domain:</strong> Day‑to‑day logistics flows inside Dynasty OS apps</li>
+  </ul>
+
+  <p><strong>Core Uses:</strong></p>
+  <ul>
+    <li>In‑app utility for logistics (fees, premium actions, unlocks)</li>
+    <li>Driver and partner rewards for performance and loyalty</li>
+    <li>Staking for access tiers or priority routing in the Logistics Dynasty</li>
+    <li>Incentives for early adopters and ecosystem contributors</li>
+  </ul>
+
+  <h3>1.2 Token B – Dynasty Governance (Major Chain)</h3>
+  <ul>
+    <li><strong>Chain:</strong> Major L1 (e.g. Ethereum mainnet or similar)</li>
+    <li><strong>Standard:</strong> ERC‑20‑style governance/reserve asset</li>
+    <li><strong>Role:</strong> Governance, long‑term alignment, “crown” of the ecosystem</li>
+    <li><strong>Primary Domain:</strong> Strategic decisions, long‑term staking, protocol direction</li>
+  </ul>
+
+  <p><strong>Core Uses:</strong></p>
+  <ul>
+    <li>Governance for key protocol parameters (conceptually, via off‑chain signaling or on‑chain voting)</li>
+    <li>Long‑term staking to align with the Logistics Dynasty’s growth</li>
+    <li>Signal and reputation layer for serious participants</li>
+    <li>Access to high‑tier “Dynasty” features, analytics, or partner programs</li>
+  </ul>
+
+  <h2>2. Harmony Between Tokens A and B</h2>
+
+  <h3>2.1 Functional Split (Supreme Harmony)</h3>
+  <ul>
+    <li><strong>Token A (BSC) – “Engine Oil”:</strong> High‑frequency usage in apps, logistics, and rewards.</li>
+    <li><strong>Token B (Main Chain) – “Crown Jewel”:</strong> Long‑term alignment, prestige, governance spine.</li>
+  </ul>
+
+  <p>
+    Harmony arises from deliberate asymmetry: Token A moves constantly in the logistics bloodstream; Token B moves
+    slowly and deliberately in the governance and treasury sphere. Both are recorded and reconciled via Codex.
+  </p>
+
+  <h3>2.2 Cross‑Chain Relationship (Conceptual Bridge)</h3>
+  <p>
+    The two tokens can be related through a conceptual cross‑chain mechanism. Possible patterns:
+  </p>
+  <ul>
+    <li><strong>Mirrored supply concept:</strong> Lock Token B on main chain, mint a wrapped representation on BSC.</li>
+    <li><strong>Conversion logic:</strong> Treasury decides conversion rules between Token A and Token B (architectural, not financial advice).</li>
+    <li><strong>Shared treasury tracking:</strong> Codex logs all cross‑chain actions for full transparency.</li>
+  </ul>
+
+  <h2>3. Logistics‑Native Use Cases</h2>
+
+  <h3>3.1 Token A (BSC) – Logistics Dynastic Utility</h3>
+  <ul>
+    <li>Reward drivers for completed loads, on‑time performance, and reliability.</li>
+    <li>Reward partners (fleets, couriers, shippers) for network contributions.</li>
+    <li>Provide in‑app premium actions (priority dispatch, fast‑track support).</li>
+    <li>Enable staking for route priority, marketplace placement, or analytics access.</li>
+  </ul>
+
+  <h3>3.2 Token B (Main Chain) – Dynasty Governance Layer</h3>
+  <ul>
+    <li>Signal preferences on protocol parameters (conceptually: fee ratios, reward weights).</li>
+    <li>Participate in long‑term staking to support system resiliency.</li>
+    <li>Gain access to “Dynasty Council”‑level analytics and dashboards.</li>
+    <li>Act as a symbolic treasury reserve asset for the Logistics Dynasty.</li>
+  </ul>
+
+  <h2>4. Codex Integration (Perpetual Harmony)</h2>
+
+  <p>Every relevant token‑related action emits Codex events, such as:</p>
+  <ul>
+    <li><code>TOKEN_A_MINTED</code>, <code>TOKEN_A_BURNED</code></li>
+    <li><code>TOKEN_B_STAKED</code>, <code>TOKEN_B_UNSTAKED</code></li>
+    <li><code>CROSS_CHAIN_LOCK</code>, <code>CROSS_CHAIN_MINT</code>, <code>CROSS_CHAIN_BURN</code></li>
+    <li><code>TREASURY_SWAP_BSC_TO_MAIN</code>, <code>TREASURY_SWAP_MAIN_TO_BSC</code></li>
+  </ul>
+
+  <p>
+    This keeps both tokens synchronized in narrative and auditable in practice (conceptually), creating a unified
+    story and state for the Logistics Dynasty.
+  </p>
+
+  <hr />
+
+  <!-- =========================================
+       FILE 2: /corpus/codex/token_economics_events.html
+       ========================================= -->
+
+  <div class="file-label">/corpus/codex/token_economics_events.html</div>
+  <h1>Dynasty OS – Token Economics Event Taxonomy</h1>
+
+  <p>
+    This document extends the Codex event taxonomy specifically for token‑related actions. It defines how Token A
+    (BSC utility) and Token B (main‑chain governance) are recorded in Codex for perpetual audit and harmony.
+  </p>
+
+  <h2>1. Token A – BSC Utility Token Events</h2>
+
+  <h3>1.1 Token A Supply Events</h3>
+  <ul>
+    <li><code>TOKEN_A_MINTED</code> – New Token A units are created under defined rules.</li>
+    <li><code>TOKEN_A_BURNED</code> – Token A units are permanently removed from circulation.</li>
+  </ul>
+
+  <h3>1.2 Token A Treasury Events</h3>
+  <ul>
+    <li><code>TOKEN_A_TREASURY_DEPOSITED</code> – Token A moved into treasury.</li>
+    <li><code>TOKEN_A_TREASURY_WITHDRAWN</code> – Token A moved out of treasury.</li>
+    <li><code>TOKEN_A_REWARD_DISTRIBUTED</code> – Token A granted as reward to drivers/partners.</li>
+    <li><code>TOKEN_A_FEE_COLLECTED</code> – Token A collected as in‑app fee.</li>
+  </ul>
+
+  <h3>1.3 Token A User Events</h3>
+  <ul>
+    <li><code>TOKEN_A_STAKED</code> – User stakes Token A for benefits (e.g. routing priority).</li>
+    <li><code>TOKEN_A_UNSTAKED</code> – User unstakes Token A.</li>
+    <li><code>TOKEN_A_TRANSFERRED</code> – Token A moved between user accounts.</li>
+  </ul>
+
+  <h2>2. Token B – Governance Token Events</h2>
+
+  <h3>2.1 Token B Governance & Staking</h3>
+  <ul>
+    <li><code>TOKEN_B_STAKED</code> – Token B locked for governance or long‑term alignment.</li>
+    <li><code>TOKEN_B_UNSTAKED</code> – Token B unlocked from governance staking.</li>
+    <li><code>TOKEN_B_VOTE_CAST</code> – Governance preference recorded (conceptually).</li>
+    <li><code>TOKEN_B_GOVERNANCE_DECISION</code> – A governance decision reaches final state.</li>
+  </ul>
+
+  <h3>2.2 Token B Treasury Events</h3>
+  <ul>
+    <li><code>TOKEN_B_TREASURY_DEPOSITED</code> – Token B added to treasury reserve.</li>
+    <li><code>TOKEN_B_TREASURY_WITHDRAWN</code> – Token B removed from treasury.</li>
+  </ul>
+
+  <h2>3. Cross‑Chain and Bridge Events</h2>
+
+  <h3>3.1 Cross‑Chain Locking / Minting</h3>
+  <ul>
+    <li><code>CROSS_CHAIN_LOCK</code> – Token B locked on main chain in a bridge contract.</li>
+    <li><code>CROSS_CHAIN_MINT</code> – Wrapped representation minted on BSC.</li>
+    <li><code>CROSS_CHAIN_BURN</code> – Wrapped representation burned on BSC.</li>
+    <li><code>CROSS_CHAIN_RELEASE</code> – Token B unlocked on main chain.</li>
+  </ul>
+
+  <h3>3.2 Cross‑Chain Treasury Swaps</h3>
+  <ul>
+    <li><code>TREASURY_SWAP_BSC_TO_MAIN</code> – Treasury moves value from BSC to main chain.</li>
+    <li><code>TREASURY_SWAP_MAIN_TO_BSC</code> – Treasury moves value from main chain to BSC.</li>
+  </ul>
+
+  <h2>4. Event Payload Structure (Conceptual)</h2>
+
+  <p>Each event should conform to a consistent structure, for example:</p>
+
+  <pre><code>{
+  "event_id": "uuid",
+  "event_type": "TOKEN_A_REWARD_DISTRIBUTED",
+  "timestamp": "ISO-8601",
+  "chain": "BSC",
+  "actor": "treasury_service",
+  "entity": "wallet",
+  "entity_id": "0x...",
+  "amount": "123.45",
+  "token_symbol": "DYNA",
+  "metadata": {
+    "reason": "driver_performance",
+    "load_id": "LOAD-12345"
+  }
+}</code></pre>
+
+  <p>
+    This structure allows full transparency, analytics, and long‑term consistency, aligning token flows with Codex
+    and the Logistics Dynasty narrative.
+  </p>
+
+  <hr />
+
+  <!-- =========================================
+       FILE 3: /corpus/operations/app_ui_token_integration.html
+       ========================================= -->
+
+  <div class="file-label">/corpus/operations/app_ui_token_integration.html</div>
+  <h1>Dynasty OS – App UI Token Integration</h1>
+
+  <p>
+    This document describes how the Replit app and future Dynasty OS frontends should surface Token A (BSC utility)
+    and prepare for Token B (governance) in a way that creates supreme, visible harmony between logistics operations
+    and the token economy.
+  </p>
+
+  <h2>1. Core UI Panels</h2>
+
+  <h3>1.1 Dynasty Economy Panel</h3>
+  <p><strong>Location:</strong> Main dashboard sidebar or top section.</p>
+  <p><strong>Purpose:</strong> Show the user that the app is not just an interface, but part of a living economic network.</p>
+  <ul>
+    <li>Current <strong>Token A balance</strong> (BSC)</li>
+    <li>List of recent Token A‑linked actions (e.g. rewards, fees)</li>
+    <li>Summary of <strong>lifetime rewards</strong> earned in Token A</li>
+    <li>Placeholder status for Token B integration (e.g. “Governance token coming soon”)</li>
+  </ul>
+
+  <h3>1.2 Driver / Partner Earnings Panel</h3>
+  <p><strong>Location:</strong> Driver view, partner view, or dedicated “Earnings” tab.</p>
+  <ul>
+    <li>Breakdown of earnings in Token A by:
+      <ul>
+        <li>Today / This week / This month</li>
+        <li>Per load / per route</li>
+      </ul>
+    </li>
+    <li>Visualization of rewards and performance bonuses</li>
+    <li>Conceptual hooks for future Token B‑based boosts or tiers</li>
+  </ul>
+
+  <h3>1.3 Treasury & Codex Panel (Ops/Admin)</h3>
+  <p><strong>Location:</strong> Admin / Ops console.</p>
+  <ul>
+    <li>High‑level view of Token A treasury activity (conceptually)</li>
+    <li>List of Codex token events (e.g. <code>TOKEN_A_REWARD_DISTRIBUTED</code>, <code>TREASURY_SWAP_BSC_TO_MAIN</code>)</li>
+    <li>Indicators of cross‑chain actions where Token B governance might be involved</li>
+  </ul>
+
+  <h2>2. UI Hooks for Token B (Governance)</h2>
+
+  <h3>2.1 Governance Status Indicator</h3>
+  <p>
+    Even before Token B is live, you can reserve UI space for it to make the architecture visible:
+  </p>
+  <ul>
+    <li>“Governance Layer: Initializing / Coming Soon” badge</li>
+    <li>Short description: “Token B will enable long‑term alignment and protocol steering.”</li>
+    <li>Link to the token roles document for full explanation.</li>
+  </ul>
+
+  <h3>2.2 Future Governance View</h3>
+  <p>Design a basic wireframe for a future page:</p>
+  <ul>
+    <li>Section for “Open governance topics” (even if conceptual at first)</li>
+    <li>Historical log of <code>TOKEN_B_GOVERNANCE_DECISION</code> events once they exist</li>
+    <li>Educational content explaining how governance is meant to work, structurally</li>
+  </ul>
+
+  <h2>3. User Flows for Harmony</h2>
+
+  <h3>3.1 Operational → Economic Loop</h3>
+  <ol>
+    <li>User takes an action in the logistics UI (e.g. completes load).</li>
+    <li>Action triggers Token A reward logic (conceptually in backend).</li>
+    <li>UI updates:
+      <ul>
+        <li>Balance in Dynasty Economy Panel</li>
+        <li>Codex events in Treasury/Codex Panel</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>3.2 Economic → Narrative Loop</h3>
+  <ol>
+    <li>Token‑related events are logged in Codex.</li>
+    <li>Admin or observers can see those logs in a “Codex Timeline” view.</li>
+    <li>Scrolls of Record (in the repo/site) can summarize major economic milestones.</li>
+  </ol>
+
+  <h2>4. Implementation Notes for Replit App</h2>
+
+  <ul>
+    <li>Add a <strong>“Dynasty Economy”</strong> section to your current UI, even if balances are mocked at first.</li>
+    <li>Display <strong>Token A network and contract</strong> (e.g. “BSC – BEP‑20 – Contract: 0x…” when ready).</li>
+    <li>Prepare one small, always‑visible <strong>Governance Layer badge</strong> to foreshadow Token B.</li>
+    <li>Log key in‑app actions (even without real chain calls yet) with Codex‑style labels so the pattern is built from day one.</li>
+  </ul>
+
+  <h2>5. Market Leadership Through Clarity</h2>
+
+  <p>
+    In crypto and logistics, “market leadership” is not guaranteed by design alone. But clear, honest, coherent design
+    gives you the best foundation:
+  </p>
+  <ul>
+    <li>One token for <strong>work and flow</strong> (Token A on BSC).</li>
+    <li>One token for <strong>alignment and governance</strong> (Token B on a major chain).</li>
+    <li>Codex as the <strong>spine</strong> that records both forever.</li>
+    <li>UI that makes this visible to every participant.</li>
+  </ul>
+
+  <p>
+    This is how you build supreme, perpetual harmony between logistics operations and a two‑layer token architecture,
+    giving your Dynasty a clear, differentiated position in both crypto and logistics.
+  </p>
+
+  <p><strong>End of Files.</strong></p>
+
+</body>
+</html>
