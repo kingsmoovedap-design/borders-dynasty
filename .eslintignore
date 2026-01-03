@@ -1,5 +1,35 @@
+# Ignore build output
+dist/
+build/
+node_modules/
+
+# Ignore ABI JSON files (ESLint cannot parse JSON as JS)
 src/abis/
-public/
 *.json
-*.css
+
+# Ignore static assets
+public/
 *.html
+*.css
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Ignore environment files
+.env
+.env.*
+*.local
+
+# Ignore logs
+*.log
+
+# Ignore config files not meant for linting
+vite.config.js
+webpack.config.js
+rollup.config.js
+
+# Ignore dashboard script if needed
+# (only if you still have raw DOM code)
+src/dashboard.js
