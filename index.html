@@ -1,90 +1,518 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
-    <title>BORDERS DYNASTY NATION • PORTAL</title>
-    <meta
-      name="description"
-      content="Borders Family Dynasty Nation – Ecclesia, Sovereign Coin, BSC Bridge, Codex Ledger, and Logistics APIs."
-    />
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html><!DOCTYPE html>
-<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Borders Sovereign Coin</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>Borders Dynasty Nation • Sovereign Portal</title>
+  <meta
+    name="description"
+    content="Borders Family Dynasty Nation – Sovereign Coin, Ecclesia, Logistics API, BSC Bridge, and Codex Ledger."
+  />
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2rem; background: #f4f4f4; }
-    button { padding: 1rem 2rem; font-size: 1rem; margin: 1rem; }
-    #wallet, #balance { margin-top: 1rem; font-weight: bold; }
+    :root {
+      --bg: #050509;
+      --bg-alt: #0c0c15;
+      --card-bg: #0a0a13;
+      --border: #2a2a3c;
+      --text: #f5f5f7;
+      --muted: #a0a0b8;
+      --accent: #f5d26a;
+      --accent-soft: #c7a647;
+      --accent-strong: #ffef9c;
+      --ok: #4fd18b;
+      --danger: #f56f6f;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.85);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      --font-mono: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: radial-gradient(circle at top, #191929 0, var(--bg) 52%, #000 100%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .root {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 16px;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #fff 0, var(--accent) 16%, #6a4a19 34%, #050509 100%);
+      border: 1px solid rgba(245, 210, 106, 0.8);
+      box-shadow: 0 0 24px rgba(245, 210, 106, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #050509;
+    }
+
+    .brand-text h1 {
+      font-size: 1rem;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .brand-text p {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      color: var(--muted);
+    }
+
+    .header-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(245, 210, 106, 0.2);
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: linear-gradient(
+        135deg,
+        rgba(245, 210, 106, 0.08),
+        rgba(0, 0, 0, 0.7)
+      );
+      transition: border 0.15s ease, background 0.15s ease, transform 0.08s ease;
+      white-space: nowrap;
+    }
+
+    .pill:hover {
+      border-color: rgba(245, 210, 106, 0.5);
+      background: linear-gradient(
+        135deg,
+        rgba(245, 210, 106, 0.22),
+        rgba(0, 0, 0, 0.96)
+      );
+      transform: translateY(-1px);
+    }
+
+    main {
+      flex: 1;
+      padding: 20px 16px 28px;
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.9fr);
+      grid-auto-rows: auto;
+      gap: 16px;
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #26263a 0, #0a0a13 24%, #050509 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(245, 210, 106, 0.16);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at top left, rgba(245, 210, 106, 0.12), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(72, 59, 209, 0.08), transparent 55%);
+      mix-blend-mode: screen;
+      opacity: 0.8;
+    }
+
+    .card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-hero {
+      grid-column: 1 / -1;
+    }
+
+    .hero-label {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      font-size: 1.7rem;
+      line-height: 1.3;
+      font-weight: 650;
+      color: var(--accent-strong);
+      margin-bottom: 10px;
+    }
+
+    .hero-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      max-width: 36rem;
+      margin-bottom: 14px;
+    }
+
+    .hero-sub strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.76rem;
+      padding: 4px 9px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(245, 210, 106, 0.26);
+      color: var(--accent-strong);
+      background: linear-gradient(
+        135deg,
+        rgba(245, 210, 106, 0.18),
+        rgba(0, 0, 0, 0.8)
+      );
+    }
+
+    .badge.secondary {
+      color: var(--muted);
+      border-color: rgba(160, 160, 184, 0.4);
+      background: linear-gradient(
+        135deg,
+        rgba(24, 24, 40, 0.9),
+        rgba(0, 0, 0, 0.9)
+      );
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      color: var(--accent-strong);
+      margin-bottom: 6px;
+    }
+
+    .card-text {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 8px;
+    }
+
+    .list {
+      list-style: none;
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .list li {
+      margin-bottom: 4px;
+    }
+
+    .meta-line {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .meta-highlight {
+      color: var(--accent);
+    }
+
+    .hash {
+      display: block;
+      margin: 8px 0 6px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(5, 5, 12, 0.9);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(245, 210, 106, 0.34);
+      padding: 10px 12px;
+      color: var(--accent-strong);
+      word-break: break-all;
+    }
+
+    .hash-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .status-block {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(160, 160, 184, 0.24);
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .status-label {
+      font-size: 0.86rem;
+      color: var(--text);
+    }
+
+    .status-pill {
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(160, 160, 184, 0.5);
+      color: var(--muted);
+    }
+
+    .status-pill.ok {
+      color: #071c10;
+      background: var(--ok);
+      border-color: rgba(19, 131, 70, 0.9);
+    }
+
+    .status-pill.offline {
+      color: #2e0202;
+      background: var(--danger);
+      border-color: rgba(139, 16, 16, 0.9);
+    }
+
+    .status-url {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 16px 18px;
+      font-size: 0.76rem;
+      color: var(--muted);
+      text-align: center;
+      background: var(--bg-alt);
+    }
+
+    @media (max-width: 840px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+      }
+      .brand-text h1 {
+        font-size: 0.9rem;
+      }
+      main {
+        padding: 16px 12px 24px;
+      }
+      .hero-title {
+        font-size: 1.4rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>👑 Borders Sovereign Coin (BSC)</h1>
-  <button onclick="connectWallet()">Connect Wallet</button>
-  <button onclick="mint()">Mint 1000 BSC</button>
-  <button onclick="burn()">Burn 500 BSC</button>
-  <div id="wallet">Wallet: Not connected</div>
-  <div id="balance">Balance: --</div>
+  <div class="root">
+    <header>
+      <div class="brand">
+        <div class="brand-mark">Ω</div>
+        <div class="brand-text">
+          <h1>BORDERS FAMILY DYNASTY NATION</h1>
+          <p>Ecclesia • Sovereign Coin • BSC Bridge • Codex Ledger</p>
+        </div>
+      </div>
+      <div class="header-links">
+        <a
+          class="pill"
+          href="https://github.com/kingsmoovedap-design/borders-dynasty"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub Repo
+        </a>
+        <a
+          class="pill"
+          href="https://replit.com/@kingsmoovedap/borders-dynasty"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Replit Workspace
+        </a>
+      </div>
+    </header>
 
-  <script>
-    const contractAddress = "0xYourContractAddress"; // Replace with your deployed address
-    const abi = [
-      "function mint(address to, uint256 amount) public",
-      "function burn(uint256 amount) public",
-      "function balanceOf(address account) view returns (uint256)"
-    ];
+    <main>
+      <section class="grid">
+        <article class="card card-hero">
+          <div class="hero-label">Dynasty Portal • Dark Mode • Mobile Optimized</div>
+          <h2 class="hero-title">
+            Borders Dynasty<br />
+            Sovereign Chain & Codex Control Panel
+          </h2>
+          <p class="hero-sub">
+            A unified view of <strong>Ecclesia</strong>, <strong>Logistics APIs</strong>,
+            <strong>BSC bridge</strong>, <strong>Borders Sovereign Coin</strong>, and the
+            <strong>Codex Ledger</strong> for the Borders Family Dynasty Nation.
+          </p>
+          <div class="hero-badges">
+            <span class="badge">Hardhat • EVM • BSC</span>
+            <span class="badge secondary">Express • REST • Monorepo</span>
+            <span class="badge secondary">Codex • Ecclesia • Logistics</span>
+          </div>
+        </article>
 
-    let signer, contract;
+        <article class="card">
+          <h3 class="card-title">Ecclesia</h3>
+          <p class="card-text">
+            The Ecclesia service provides sovereign identity, ceremonial registry,
+            and codex integration for the Dynasty.
+          </p>
+          <div class="status-block">
+            <div class="status-line">
+              <span class="status-label">Ecclesia Service</span>
+              <span class="status-pill">Check from local stack</span>
+            </div>
+            <div class="status-url">http://localhost:3001</div>
+          </div>
+        </article>
 
-    async function connectWallet() {
-      if (!window.ethereum) return alert("Install MetaMask first!");
-      await ethereum.request({ method: "eth_requestAccounts" });
+        <article class="card">
+          <h3 class="card-title">Logistics API</h3>
+          <p class="card-text">
+            The Logistics API handles events, loads, and Codex‑linked dispatch
+            records for dynasty operations.
+          </p>
+          <div class="status-block">
+            <div class="status-line">
+              <span class="status-label">Logistics API</span>
+              <span class="status-pill">Check from local stack</span>
+            </div>
+            <div class="status-url">http://localhost:3000</div>
+          </div>
+        </article>
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      signer = provider.getSigner();
-      contract = new ethers.Contract(contractAddress, abi, signer);
+        <article class="card">
+          <h3 class="card-title">Mobile Operators</h3>
+          <p class="card-text">
+            Designed for sovereign mobile identity and operator integrations tied to the
+            Borders Dynasty ledger and coin.
+          </p>
+          <ul class="list">
+            <li>• SIM‑linked identity hooks (planned)</li>
+            <li>• Operator registry via Ecclesia (planned)</li>
+            <li>• On‑chain usage accounting (planned)</li>
+          </ul>
+        </article>
 
-      const address = await signer.getAddress();
-      document.getElementById("wallet").innerText = `Wallet: ${address}`;
-      getBalance();
-    }
+        <article class="card">
+          <h3 class="card-title">BSC Bridge</h3>
+          <p class="card-text">
+            The bridge uses Alchemy RPC and Hardhat pipelines to deploy and interact
+            with ERC‑20 style contracts on BSC.
+          </p>
+          <p class="meta-line">
+            RPC provider: <span class="meta-highlight">Alchemy</span>
+          </p>
+          <p class="meta-line">
+            Network: <span class="meta-highlight">BSC (EVM compatible)</span>
+          </p>
+        </article>
 
-    async function mint() {
-      if (!signer || !contract) return alert("Connect wallet first!");
-      const amount = ethers.utils.parseUnits("1000", 18);
-      const tx = await contract.mint(await signer.getAddress(), amount);
-      alert("Minting... TX: " + tx.hash);
-      await tx.wait();
-      alert("✅ Minted 1000 BSC!");
-      getBalance();
-    }
+        <article class="card">
+          <h3 class="card-title">Borders Sovereign Coin</h3>
+          <p class="card-text">
+            Borders Sovereign Coin is the ERC‑20‑style sovereign token of the Borders
+            Dynasty, deployed on an EVM‑compatible chain for treasury and ceremony.
+          </p>
+          <p class="meta-line">Recorded hash anchor:</p>
+          <code class="hash">
+0xA3F9B72088E963F54C1D04AD23C67FBA91E7FAE257E50ED9CB1D8C63ECE67B2
+          </code>
+          <p class="hash-note">
+            Verify this hash on the designated explorer for audits and external proof.
+          </p>
+        </article>
 
-    async function burn() {
-      if (!signer || !contract) return alert("Connect wallet first!");
-      const amount = ethers.utils.parseUnits("500", 18);
-      const tx = await contract.burn(amount);
-      alert("Burning... TX: " + tx.hash);
-      await tx.wait();
-      alert("🔥 Burned 500 BSC!");
-      getBalance();
-    }
+        <article class="card">
+          <h3 class="card-title">Codex Ledger</h3>
+          <p class="card-text">
+            The Codex Ledger records events, filings, blockchain anchors, and
+            tribunal‑ready entries for the Borders Family Dynasty Nation.
+          </p>
+          <ul class="list">
+            <li>• Event recording and sovereign logs</li>
+            <li>• Hash anchoring to BSC and beyond</li>
+            <li>• Future UI expansion for full ledger view</li>
+          </ul>
+        </article>
+      </section>
+    </main>
 
-    async function getBalance() {
-      const address = await signer.getAddress();
-      const balance = await contract.balanceOf(address);
-      document.getElementById("balance").innerText =
-        `Balance: ${ethers.utils.formatUnits(balance, 18)} BSC`;
-    }
-  </script>
+    <footer>
+      Borders Family Dynasty Nation • Supreme Corpus Eternal • Ecclesia • Logistics • Sovereign Coin
+    </footer>
+  </div>
 </body>
 </html>
