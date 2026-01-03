@@ -2,10 +2,528 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Borders Dynasty</title>
+  <title>Borders Dynasty – Sovereign Coin & API</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="Borders Dynasty – Sovereign-grade crypto, Hardhat contracts, and Express API for the Borders Family Dynasty Nation."
+  />
+  <style>
+    :root {
+      --bg: #050509;
+      --bg-alt: #0c0c15;
+      --accent: #f5d26a;
+      --accent-soft: #c7a647;
+      --accent-strong: #ffef9c;
+      --text: #f5f5f7;
+      --muted: #a0a0b8;
+      --border: #2a2a3c;
+      --danger: #f56f6f;
+      --shadow-soft: 0 24px 60px rgba(0, 0, 0, 0.85);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: radial-gradient(circle at top, #191929 0, #050509 50%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    main {
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 16px 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #fff 0, #f5d26a 14%, #6a4a19 32%, #050509 100%);
+      border: 1px solid rgba(245, 210, 106, 0.8);
+      box-shadow: 0 0 30px rgba(245, 210, 106, 0.35);
+      position: relative;
+    }
+
+    .brand-mark::before {
+      content: "Ω";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 22px;
+      color: #050509;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+    }
+
+    .brand-text h1 {
+      font-size: 1.2rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .brand-text p {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(245, 210, 106, 0.18);
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: linear-gradient(135deg, rgba(245, 210, 106, 0.04), rgba(0, 0, 0, 0.4));
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+
+    .pill strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .pill-link {
+      cursor: pointer;
+      transition: border 0.15s ease, background 0.15s ease, transform 0.08s ease;
+    }
+
+    .pill-link:hover {
+      border-color: rgba(245, 210, 106, 0.45);
+      background: linear-gradient(135deg, rgba(245, 210, 106, 0.16), rgba(0, 0, 0, 0.9));
+      transform: translateY(-1px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.8fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #26263a 0, #0a0a13 28%, #050509 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(245, 210, 106, 0.14);
+      box-shadow: var(--shadow-soft);
+      padding: 22px 22px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at top left, rgba(245, 210, 106, 0.12), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(72, 59, 209, 0.08), transparent 55%);
+      mix-blend-mode: screen;
+      opacity: 0.85;
+    }
+
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-label {
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      font-size: 1.8rem;
+      line-height: 1.3;
+      font-weight: 650;
+      color: var(--accent-strong);
+      margin-bottom: 10px;
+    }
+
+    .hero-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      max-width: 36rem;
+      margin-bottom: 16px;
+    }
+
+    .hero-sub strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      font-size: 0.76rem;
+      padding: 4px 9px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(245, 210, 106, 0.24);
+      color: var(--accent-strong);
+      background: linear-gradient(135deg, rgba(245, 210, 106, 0.15), rgba(0, 0, 0, 0.8));
+    }
+
+    .badge.secondary {
+      color: var(--muted);
+      border-color: rgba(160, 160, 184, 0.4);
+      background: linear-gradient(135deg, rgba(24, 24, 40, 0.9), rgba(0, 0, 0, 0.9));
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-pill);
+      font-size: 0.86rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease, border 0.15s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f5d26a, #c7a647);
+      color: #1a1204;
+      box-shadow: 0 14px 40px rgba(245, 210, 106, 0.32);
+      border-color: rgba(94, 74, 10, 0.7);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 52px rgba(245, 210, 106, 0.4);
+      background: linear-gradient(135deg, #ffef9c, #f5d26a);
+    }
+
+    .btn-ghost {
+      background: rgba(3, 3, 10, 0.7);
+      border-color: rgba(245, 210, 106, 0.3);
+      color: var(--accent-soft);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(12, 12, 24, 0.9);
+      border-color: rgba(245, 210, 106, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .btn span.icon {
+      font-size: 1.05em;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .meta-tag {
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(160, 160, 184, 0.28);
+      color: var(--muted);
+      background: rgba(7, 7, 18, 0.9);
+    }
+
+    .meta-tag strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .meta-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .meta-note strong {
+      color: var(--accent-soft);
+      font-weight: 500;
+    }
+
+    .side-card-heading {
+      font-size: 0.92rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .side-card-title {
+      font-size: 1.05rem;
+      color: var(--accent-strong);
+      margin-bottom: 10px;
+    }
+
+    .side-card-title span {
+      color: var(--accent);
+    }
+
+    .side-list {
+      list-style: none;
+      margin-bottom: 16px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .side-list li {
+      margin-bottom: 4px;
+    }
+
+    .side-list li strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .code-block {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(5, 5, 12, 0.9);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(245, 210, 106, 0.2);
+      padding: 10px 12px;
+      color: var(--accent-strong);
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+
+    .footer {
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto 18px;
+      padding: 0 16px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .footer span.highlight {
+      color: var(--accent-soft);
+    }
+
+    @media (max-width: 840px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      main {
+        padding-top: 24px;
+      }
+      .hero-title {
+        font-size: 1.55rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <script src="bundle.js"></script>
+  <main>
+    <header>
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">
+          <h1>BORDERS FAMILY DYNASTY NATION</h1>
+          <p>Supreme Corpus • Sovereign Coin • API</p>
+        </div>
+      </div>
+      <div class="header-links">
+        <div class="pill">
+          <strong>Project:</strong> borders-dynasty
+        </div>
+        <a
+          class="pill pill-link"
+          href="https://replit.com/@kingsmoovedap/borders-dynasty"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View Replit Workspace
+        </a>
+      </div>
+    </header>
+
+    <section class="layout">
+      <!-- Left: Hero / Overview -->
+      <article class="card">
+        <div class="card-inner">
+          <div class="hero-label">Borders Sovereign Coin • Hardhat + Express</div>
+          <h2 class="hero-title">
+            Borders Dynasty<br />
+            Sovereign Coin & API Gateway
+          </h2>
+          <p class="hero-sub">
+            A <strong>sovereign-grade crypto + API stack</strong> for the Borders Family Dynasty
+            Nation — built with <strong>Hardhat</strong> smart contracts and an
+            <strong>Express service</strong> ready for blockchain calls, treasury flows, and
+            dynasty integrations.
+          </p>
+
+          <div class="hero-badges">
+            <div class="badge">Hardhat • Solidity Contracts</div>
+            <div class="badge secondary">Express • REST API Service</div>
+            <div class="badge secondary">Dynasty OS • Sovereign Runtime</div>
+          </div>
+
+          <div class="hero-actions">
+            <a
+              class="btn btn-primary"
+              href="https://github.com/kingsmoovedap-design/borders-dynasty"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="icon">⟡</span>
+              <span>Open GitHub Repository</span>
+            </a>
+            <a
+              class="btn btn-ghost"
+              href="https://replit.com/@kingsmoovedap/borders-dynasty"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="icon">▶</span>
+              <span>Run Project on Replit</span>
+            </a>
+          </div>
+
+          <div class="meta-row">
+            <div class="meta-tag">
+              <strong>Stack:</strong> Hardhat • Node.js • Express
+            </div>
+            <div class="meta-tag">
+              <strong>Purpose:</strong> Borders Sovereign Coin + API
+            </div>
+          </div>
+          <p class="meta-note">
+            <strong>Usage:</strong> Clone from GitHub for local dev, or use the Replit workspace
+            for live iteration and deployment experiments.
+          </p>
+        </div>
+      </article>
+
+      <!-- Right: Dynasty / Hash / Notes -->
+      <aside class="card">
+        <div class="card-inner">
+          <div class="side-card-heading">Dynasty Context</div>
+          <div class="side-card-title">
+            <span>BORDERS DYNASTY</span> • Sovereign Chain Anchor
+          </div>
+
+          <ul class="side-list">
+            <li><strong>Nation:</strong> Borders Family Dynasty Nation</li>
+            <li><strong>Project:</strong> Borders Sovereign Coin (borders-dynasty)</li>
+            <li><strong>Role:</strong> Hardhat contracts + Express API shell</li>
+          </ul>
+
+          <p class="meta-note" style="margin-bottom: 10px;">
+            Below is a reference to one of the dynasty's recorded blockchain anchors, suitable
+            for documentation and print archive:
+          </p>
+
+          <div class="code-block">
+0xA3F9B72088E963F54C1D04AD23C67FBA91E7FAE257E50ED9CB1D8C63ECE67B2
+          </div>
+
+          <p class="meta-note" style="margin-bottom: 6px;">
+            <strong>Note:</strong> Verify this hash against the designated chain explorer or
+            node when performing audits or external proofs.
+          </p>
+
+          <p class="meta-note">
+            This page serves as the <strong>public index</strong> for the borders-dynasty project
+            when hosted via GitHub Pages or viewed directly from the repository.
+          </p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>
+      <span class="highlight">Borders Family Dynasty Nation</span> • Borders Sovereign Coin •
+      Supreme Corpus Eternal
+    </div>
+    <div>
+      Project: <span class="highlight">borders-dynasty</span> • Maintained by
+      <span class="highlight">@kingsmoovedap</span>
+    </div>
+  </footer>
 </body>
 </html>
