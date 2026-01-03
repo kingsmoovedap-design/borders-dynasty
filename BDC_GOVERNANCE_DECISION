@@ -1,0 +1,15 @@
+{
+  "event_id": "uuid",
+  "event_type": "BDC_GOVERNANCE_DECISION",
+  "timestamp": "ISO-8601",
+  "chain": "Arbitrum",
+  "token": "BDC",
+  "actor": "governance_module",
+  "entity": "proposal",
+  "entity_id": "PROPOSAL-42",
+  "metadata": {
+    "outcome": "accepted",
+    "affected_parameter": "reward_multiplier_driver_tier_1",
+    "effective_date": "ISO-8601"
+  }
+}
