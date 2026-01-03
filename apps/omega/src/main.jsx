@@ -1,10 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './styles.css';
+import { useEffect } from "react";
+import "./dashboard.js";
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+export default function App() {
+  useEffect(() => {
+    if (window.init) {
+      window.init();
+    }
+  }, []);
+
+  return (
+    <div id="app"></div>
+  );
+}
