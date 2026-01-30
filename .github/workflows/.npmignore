@@ -1,4 +1,4 @@
-# Ignore development and config files
+# Development and config files
 *.log
 *.ts
 *.tsbuildinfo
@@ -6,7 +6,7 @@
 *.env
 *.env.*
 
-# Ignore test files
+# Test files and coverage
 test/
 tests/
 *.test.js
@@ -14,9 +14,9 @@ tests/
 coverage/
 .nyc_output/
 
-# Ignore build tools and configs
-webpack.config.js
-hardhat.config.js
+# Build tools and configs
+webpack.config.*
+hardhat.config.*
 vite.config.*
 rollup.config.*
 .eslintrc.*
@@ -28,15 +28,14 @@ tsconfig.json
 jest.config.*
 *.config.js
 
-# Ignore CI/CD and meta
-.github/
+# CI/CD and meta (keep workflows if publishing reusable actions)
 .gitignore
 .gitattributes
 .vscode/
 .idea/
 *.md
 
-# Ignore caches and temp
+# Caches and build artifacts
 .cache/
 dist/
 build/
