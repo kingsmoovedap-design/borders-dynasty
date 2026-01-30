@@ -1,0 +1,33 @@
+name: Mint BSC Tokens
+
+on:
+  workflow_dispatch:
+    inputs:
+      to:
+        description: 'Recipient wallet address'
+        required: true
+      amount:
+        description: 'Amount to mint (in full tokens)'
+        required: true
+
+jobs:
+  mint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Mint Tokens
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
+        run: |
+          npx hardhat run scripts/mint-bsc.ts --network bsc --to ${{ github.event.inputs.to }} --amount ${{ github.event.inputs.amount }}
