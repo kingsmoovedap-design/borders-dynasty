@@ -1,0 +1,65 @@
+name: Deploy to BNB Smart Chain (BSC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      contract:
+        description: 'Contract name (e.g., BSC)'
+        required: true
+      network:
+        description: 'Target network'
+        default: 'bsc'
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy Smart Contract to BSC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile Contracts
+        run: npx hardhat compile
+
+      - name: Deploy Contract to BSC
+        env:
+          PRIVATE_KEY: ${{ secrets.BSC_DEPLOYER_KEY }}
+          BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
+        run: |
+          echo "Deploying ${{ github.event.inputs.contract }} to ${{ github.event.inputs.network }}..."
+          npx hardhat run scripts/deploy-bsc-mainnet.ts --network ${{ github.event.inputs.network }}
+
+  verify:
+    name: Verify Contract on BscScan
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Contract on BscScan
+        env:
+          BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
+        run: |
+          echo "Verifying contract..."
+          npx hardhat verify --network bsc ${{ secrets.CONTRACT_ADDRESS }} ${{ secrets.CONSTRUCTOR_ARGS }}
