@@ -1,0 +1,29 @@
+name: Anchor CodexChain Scrolls
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - 'scrolls/**'
+
+jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Hash Contracts and Scrolls
+        run: |
+          mkdir -p codex-ledger
+          find contracts -type f -name "*.sol" -exec sha256sum {} \; > codex-ledger/contracts.hash
+          find scrolls -type f -name "*.md" -exec sha256sum {} \; > codex-ledger/scrolls.hash
+
+      - name: Commit Hashes
+        run: |
+          git config user.name "CodexChain Bot"
+          git config user.email "codex@borders.dynasty"
+          git add codex-ledger/
+          git commit -m "Anchor contract and scroll hashes to CodexChain"
+          git push
