@@ -6,29 +6,30 @@ on:
 
 jobs:
   release:
+    name: Semantic Release & Artifact Upload
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: npm
+          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Run semantic-release
+      - name: Run Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: codexchain-release
           path: dist/
@@ -38,28 +39,40 @@ jobs:
           overwrite: true
           include-hidden-files: true
 
-      - name: Setup Java JDK
-        uses: actions/setup-java@v5.1.0
+  rollback:
+    name: ServiceNow Rollback (Post-Release)
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+
+    steps:
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Download Previous Artifact (if needed)
-        uses: actions/download-artifact@v7.0.0
+      - name: Download Previous Artifact
+        uses: actions/download-artifact@v4
         with:
           name: codexchain-release
 
-      - name: Close Stale Issues
-        uses: actions/stale@v10.1.1
-        with:
-          stale-issue-message: "This issue has been automatically marked as stale due to inactivity."
-          days-before-stale: 30
-          days-before-close: 7
-          stale-pr-message: "This PR has been marked as stale and will be closed soon if no activity occurs."
-
-      - name: ServiceNow CI/CD Rollback Plugin
+      - name: Trigger ServiceNow Rollback
         uses: ServiceNow/sncicd-plugin-rollback@2.0.0
         with:
           instance-url: ${{ secrets.SERVICENOW_INSTANCE_URL }}
           username: ${{ secrets.SERVICENOW_USERNAME }}
           password: ${{ secrets.SERVICENOW_PASSWORD }}
+
+  stale:
+    name: Auto-Close Stale Issues/PRs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Close Stale Issues
+        uses: actions/stale@v10
+        with:
+          stale-issue-message: "This issue has been automatically marked as stale due to inactivity."
+          stale-pr-message: "This PR has been marked as stale and will be closed soon if no activity occurs."
+          days-before-stale: 30
+          days-before-close: 7
