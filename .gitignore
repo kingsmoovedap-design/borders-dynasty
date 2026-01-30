@@ -1,43 +1,64 @@
-# Node modules
+# Node modules and build artifacts
 node_modules/
-
-# Build output
 dist/
 build/
+.cache/
+artifacts/
+typechain/
+coverage/
+out/
 
-# Logs
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and debug
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# OS-specific
+# OS and editor files
 .DS_Store
 Thumbs.db
-
-# IDEs and editors
-.vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
+.vscode/
+*.swp
+*.swo
 
-# Coverage reports
-coverage/
+# Hardhat specific
+*.tsbuildinfo
+hardhat.log
+deployments/
+deployments.json
 
-# Hardhat artifacts
-artifacts/
-cache/
-typechain/
-
-# ABI outputs
+# ABI and compiled outputs
 abi/
+*.abi.json
+
+# Frontend build (if using React/Next.js)
+.next/
+.vercel/
+*.tgz
+
+# Render or deployment artifacts
+*.render-build/
+render.yaml
+firebase.json
+netlify.toml
+
+# GitHub and CI/CD
+.github/
+*.pem
+*.key
+*.crt
+*.cert
+*.pub
 
 # Misc
-*.log
-*.tgz
+*.zip
+*.bak
+*.tmp
+*.pid
