@@ -1,0 +1,53 @@
+name: Deno Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.ts'
+      - 'deno.json'
+      - '.github/workflows/deno-release.yml'
+
+jobs:
+  release:
+    name: Tag & Publish Deno Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Determine Next Version
+        id: version
+        run: |
+          VERSION=$(deno run -A scripts/semver.ts)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Git Tag
+        run: |
+          git config user.name "CodexChain Bot"
+          git config user.email "codex@borders.dynasty"
+          git tag -a v${{ steps.version.outputs.version }} -m "Release v${{ steps.version.outputs.version }}"
+          git push origin v${{ steps.version.outputs.version }}
+
+      - name: Generate Changelog
+        run: |
+          deno run -A scripts/changelog.ts > CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Borders Sovereign Coin v${{ steps.version.outputs.version }}
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

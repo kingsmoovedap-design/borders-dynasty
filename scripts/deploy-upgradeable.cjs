@@ -1,34 +1,42 @@
-const { ethers, upgrades, run } = require('hardhat');
+#!/usr/bin/env node
+
+const { ethers, upgrades, run } = require("hardhat");
+require("dotenv").config();
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log('Deploying contracts with the account:', deployer.address);
+  console.log(`🚀 Deploying with account: ${deployer.address}`);
 
-  const BordersSovereignCoin = await ethers.getContractFactory('BordersSovereignCoin');
-  const bsc = await upgrades.deployProxy(BordersSovereignCoin, [deployer.address], { initializer: 'initialize' });
+  const BordersSovereignCoin = await ethers.getContractFactory("BordersSovereignCoin");
+
+  console.log("🔧 Deploying upgradeable proxy...");
+  const bsc = await upgrades.deployProxy(BordersSovereignCoin, [deployer.address], {
+    initializer: "initialize",
+  });
 
   await bsc.waitForDeployment();
   const address = await bsc.getAddress();
-  console.log('BordersSovereignCoin proxy deployed to:', address);
+  console.log(`✅ BordersSovereignCoin proxy deployed to: ${address}`);
 
-  // Auto-verify if ETHERSCAN_API_KEY is present
   if (process.env.ETHERSCAN_API_KEY) {
-    console.log('Initiating Etherscan verification...');
+    console.log("🔍 Initiating Etherscan verification...");
     try {
-      await run('verify:verify', {
-        address: address,
+      await run("verify:verify", {
+        address,
         constructorArguments: [],
       });
-      console.log('Verification successful');
+      console.log("✅ Verification successful");
     } catch (e) {
-      console.log('Verification failed:', e.message);
+      console.warn("⚠️ Verification failed:", e.message);
     }
+  } else {
+    console.warn("⚠️ ETHERSCAN_API_KEY not set. Skipping verification.");
   }
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("🛑 Deployment failed:", error);
     process.exit(1);
   });

@@ -1,4 +1,3 @@
-# .github/workflows/deploy.yml
 name: CodexChain Deploy
 
 on:
@@ -8,29 +7,42 @@ on:
 
 jobs:
   verify-contract:
+    name: Verify Contract on Etherscan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: npm ci
-      - name: Verify contract on Etherscan
-        run: npx hardhat verify --network mainnet ${{ secrets.CONTRACT_ADDRESS }} ${{ secrets.CONSTRUCTOR_ARGS }}
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Contract
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+        run: |
+          npx hardhat verify --network mainnet \
+            ${{ secrets.CONTRACT_ADDRESS }} \
+            ${{ secrets.CONSTRUCTOR_ARGS }}
 
   notify-webhooks:
+    name: Notify Webhooks
     needs: verify-contract
     runs-on: ubuntu-latest
     steps:
       - name: Notify Render Webhook
         run: curl -X POST ${{ secrets.RENDER_WEBHOOK_URL }}
+
       - name: Notify Alchemy Webhook
         run: curl -X POST ${{ secrets.ALCHEMY_WEBHOOK_URL }}
 
   deploy-frontend:
+    name: Deploy Frontend to GitHub Pages
     needs: verify-contract
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -38,6 +50,7 @@ jobs:
           publish_dir: ./dist
 
   provenance:
+    name: Anchor Provenance with SLSA
     needs: deploy-frontend
     permissions:
       actions: read
