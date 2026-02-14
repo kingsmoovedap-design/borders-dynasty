@@ -1,0 +1,6 @@
+[
+  { "id": "tee", "name": "T-Shirt" },
+  { "id": "hoodie", "name": "Hoodie" },
+  { "id": "crewneck", "name": "Crewneck Sweatshirt" },
+  { "id": "cap", "name": "Cap" }
+]

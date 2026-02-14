@@ -1,0 +1,805 @@
+Here’s the complete, ready‑to‑drop source for your new unified repo.  
+You can paste this into Replit, then connect/push to GitHub.
+
+---
+
+### Folder structure
+
+```text
+borders-dynasty-hub/
+  index.html
+  styles.css
+  main.js
+  config.js
+
+  studio/
+    index.html
+    styles.css
+    app.js
+    products.json
+
+  events/
+    index.html
+    styles.css
+    app.js
+    inventory.json
+```
+
+---
+
+### `index.html` (root)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Borders Dynasty – Sovereign Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="bd-header">
+    <h1>Borders Dynasty</h1>
+    <p>Codex, Sovereign Coin, Logistics, and Dynasty Enterprises.</p>
+  </header>
+
+  <main class="bd-main">
+    <section class="bd-section">
+      <h2>Throne & Sovereign Notice</h2>
+      <p>
+        This portal serves as the public surface of the Borders Family Dynasty Nation,
+        including trust, ministries, logistics, and commercial platforms.
+      </p>
+    </section>
+
+    <section class="bd-section">
+      <h2>Dynasty Systems</h2>
+      <ul class="bd-links">
+        <li><a href="studio/index.html">Divine Living – Custom Apparel Studio</a></li>
+        <li><a href="events/index.html">Dynasty Party Co. – Events & Rentals</a></li>
+      </ul>
+    </section>
+
+    <section class="bd-section">
+      <h2>Sovereign Coin</h2>
+      <p id="coinInfo">
+        Borders Sovereign Coin (BSC) operates on Binance Smart Chain as the primary
+        sovereign token of the dynasty. Integration into portals and enterprises is in progress.
+      </p>
+    </section>
+  </main>
+
+  <footer class="bd-footer">
+    <p>Borders Dynasty · Sovereign Architecture & Logistics</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
+```
+
+---
+
+### `styles.css` (root)
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+a {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.bd-header, .bd-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #030712;
+  border-bottom: 1px solid #1f2937;
+}
+
+.bd-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bd-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.bd-section {
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bd-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bd-links li {
+  margin-bottom: 0.5rem;
+}
+
+.bd-footer {
+  border-top: 1px solid #1f2937;
+}
+```
+
+---
+
+### `config.js` (root)
+
+```js
+// Global dynasty config – fill these when ready
+window.DYNASTY_CONFIG = {
+  sovereignCoinAddress: "",   // BSC contract address goes here later
+  logisticsApiBaseUrl: ""     // e.g. "https://your-logistics-api.onrender.com"
+};
+```
+
+---
+
+### `main.js` (root)
+
+```js
+console.log('Borders Dynasty root portal loaded.');
+
+const cfg = window.DYNASTY_CONFIG || {};
+const coinInfoEl = document.getElementById('coinInfo');
+
+if (cfg.sovereignCoinAddress && coinInfoEl) {
+  const link = document.createElement('a');
+  link.href = `https://bscscan.com/token/${cfg.sovereignCoinAddress}`;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = 'View Borders Sovereign Coin on BscScan';
+
+  const br = document.createElement('br');
+  coinInfoEl.appendChild(br);
+  coinInfoEl.appendChild(link);
+}
+```
+
+---
+
+## Divine Living – `/studio`
+
+### `/studio/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Divine Living – Custom Apparel Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="dl-header">
+    <h1>Divine Living</h1>
+    <p>Custom apparel designed by you, curated by the Borders Dynasty.</p>
+  </header>
+
+  <main class="dl-main">
+    <section class="dl-config">
+      <h2>Design Your Piece</h2>
+
+      <label>
+        Product
+        <select id="productSelect"></select>
+      </label>
+
+      <label>
+        Color
+        <select id="colorSelect">
+          <option value="#000000">Black</option>
+          <option value="#ffffff">White</option>
+          <option value="#b22222">Crimson</option>
+          <option value="#1e3a8a">Royal Blue</option>
+          <option value="#14532d">Emerald</option>
+        </select>
+      </label>
+
+      <label>
+        Size
+        <select id="sizeSelect">
+          <option value="S">Small</option>
+          <option value="M">Medium</option>
+          <option value="L">Large</option>
+          <option value="XL">XL</option>
+          <option value="2XL">2XL</option>
+        </select>
+      </label>
+
+      <label>
+        Text on garment
+        <input type="text" id="textInput" placeholder="Divine Living, family name, etc.">
+      </label>
+
+      <button id="addToCartBtn">Add to Cart</button>
+    </section>
+
+    <section class="dl-preview">
+      <h2>Live Preview</h2>
+      <div id="previewBox">
+        <div id="previewGarment">
+          <span id="previewText">Your Text</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="dl-cart">
+      <h2>Cart</h2>
+      <ul id="cartList"></ul>
+
+      <h3>Checkout</h3>
+      <form id="checkoutForm">
+        <label>
+          Full Name
+          <input type="text" id="nameInput" required>
+        </label>
+        <label>
+          Email
+          <input type="email" id="emailInput" required>
+        </label>
+        <label>
+          Shipping Address
+          <textarea id="addressInput" required></textarea>
+        </label>
+        <button type="submit">Submit Order Request</button>
+      </form>
+
+      <p class="dl-note">
+        Orders are reviewed and fulfilled by the Divine Living team under the Borders Dynasty.
+        You will receive a confirmation and payment instructions.
+      </p>
+    </section>
+  </main>
+
+  <footer class="dl-footer">
+    <p>Divine Living · A Borders Dynasty Studio</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+---
+
+### `/studio/styles.css`
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #050816;
+  color: #e5e7eb;
+}
+
+.dl-header, .dl-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #020617;
+  border-bottom: 1px solid #1f2937;
+}
+
+.dl-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dl-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.dl-config, .dl-preview, .dl-cart {
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+select, input, textarea, button {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+button {
+  cursor: pointer;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border: none;
+  font-weight: 600;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+#previewBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#previewGarment {
+  width: 180px;
+  height: 220px;
+  border-radius: 1rem;
+  background: #111827;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #4b5563;
+}
+
+#previewText {
+  color: #f9fafb;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+#cartList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+}
+
+#cartList li {
+  padding: 0.5rem;
+  border-bottom: 1px solid #1f2937;
+}
+
+.dl-note {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.dl-footer {
+  border-top: 1px solid #1f2937;
+}
+```
+
+---
+
+### `/studio/products.json`
+
+```json
+[
+  { "id": "tee", "name": "T-Shirt" },
+  { "id": "hoodie", "name": "Hoodie" },
+  { "id": "crewneck", "name": "Crewneck Sweatshirt" },
+  { "id": "cap", "name": "Cap" }
+]
+```
+
+---
+
+### `/studio/app.js`
+
+```js
+const productSelect = document.getElementById('productSelect');
+const colorSelect = document.getElementById('colorSelect');
+const sizeSelect = document.getElementById('sizeSelect');
+const textInput = document.getElementById('textInput');
+const previewGarment = document.getElementById('previewGarment');
+const previewText = document.getElementById('previewText');
+const addToCartBtn = document.getElementById('addToCartBtn');
+const cartList = document.getElementById('cartList');
+const checkoutForm = document.getElementById('checkoutForm');
+
+let cart = [];
+
+async function loadProducts() {
+  try {
+    const res = await fetch('products.json');
+    const products = await res.json();
+    products.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      productSelect.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('Failed to load products', e);
+  }
+}
+
+function updatePreview() {
+  previewGarment.style.backgroundColor = colorSelect.value;
+  previewText.textContent = textInput.value || 'Your Text';
+}
+
+function renderCart() {
+  cartList.innerHTML = '';
+  cart.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = `${item.productName} – ${item.size} – ${item.colorName} – "${item.text}"`;
+    cartList.appendChild(li);
+  });
+}
+
+addToCartBtn.addEventListener('click', () => {
+  const productName = productSelect.options[productSelect.selectedIndex]?.text || '';
+  const colorName = colorSelect.options[colorSelect.selectedIndex]?.text || '';
+  const item = {
+    productId: productSelect.value,
+    productName,
+    color: colorSelect.value,
+    colorName,
+    size: sizeSelect.value,
+    text: textInput.value || ''
+  };
+  cart.push(item);
+  renderCart();
+});
+
+checkoutForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (cart.length === 0) {
+    alert('Add at least one item to the cart.');
+    return;
+  }
+
+  const order = {
+    name: document.getElementById('nameInput').value,
+    email: document.getElementById('emailInput').value,
+    address: document.getElementById('addressInput').value,
+    items: cart
+  };
+
+  console.log('Order submitted (save or email this):', order);
+  alert('Order request submitted. Divine Living will contact you to confirm and arrange payment.');
+  checkoutForm.reset();
+  cart = [];
+  renderCart();
+});
+
+colorSelect.addEventListener('change', updatePreview);
+textInput.addEventListener('input', updatePreview);
+
+loadProducts().then(updatePreview);
+```
+
+---
+
+## Dynasty Party Co. – `/events`
+
+### `/events/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynasty Party Co. – Events & Rentals</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="dp-header">
+    <h1>Dynasty Party Co.</h1>
+    <p>Trustee‑operated events, rentals, and celebrations under the Borders Dynasty.</p>
+  </header>
+
+  <main class="dp-main">
+    <section class="dp-inventory">
+      <h2>Rentals & Inventory</h2>
+      <div id="inventoryGrid" class="dp-grid"></div>
+    </section>
+
+    <section class="dp-booking">
+      <h2>Event Booking Request</h2>
+      <form id="bookingForm">
+        <label>
+          Event Type
+          <input type="text" id="eventTypeInput" placeholder="Birthday, wedding, corporate, etc." required>
+        </label>
+        <label>
+          Event Date
+          <input type="date" id="dateInput" required>
+        </label>
+        <label>
+          Event Time
+          <input type="time" id="timeInput" required>
+        </label>
+        <label>
+          Location / Venue
+          <input type="text" id="locationInput" required>
+        </label>
+        <label>
+          Guest Count
+          <input type="number" id="guestsInput" min="1" required>
+        </label>
+        <label>
+          Selected Items / Packages
+          <textarea id="selectedItemsInput" placeholder="List items or packages you want"></textarea>
+        </label>
+        <label>
+          Name
+          <input type="text" id="nameInput" required>
+        </label>
+        <label>
+          Email
+          <input type="email" id="emailInput" required>
+        </label>
+        <label>
+          Phone
+          <input type="tel" id="phoneInput" required>
+        </label>
+        <button type="submit">Submit Booking Request</button>
+      </form>
+
+      <p class="dp-note">
+        Dynasty Party Co. will review your request, confirm availability, and send a quote and payment instructions.
+      </p>
+    </section>
+  </main>
+
+  <footer class="dp-footer">
+    <p>Dynasty Party Co. · Trustee‑Operated · Borders Dynasty</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+---
+
+### `/events/styles.css`
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.dp-header, .dp-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #030712;
+  border-bottom: 1px solid #1f2937;
+}
+
+.dp-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dp-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr);
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .dp-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dp-inventory, .dp-booking {
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.dp-card {
+  background: #030712;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #1f2937;
+}
+
+.dp-card h3 {
+  margin: 0 0 0.25rem 0;
+}
+
+.dp-card p {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+input, textarea, button {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+textarea {
+  min-height: 80px;
+}
+
+button {
+  cursor: pointer;
+  background: linear-gradient(135deg, #f97316, #ec4899);
+  border: none;
+  font-weight: 600;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.dp-note {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.75rem;
+}
+
+.dp-footer {
+  border-top: 1px solid #1f2937;
+}
+```
+
+---
+
+### `/events/inventory.json`
+
+```json
+[
+  {
+    "category": "Tables",
+    "name": "6ft Rectangular Table",
+    "price": 12,
+    "unit": "per event"
+  },
+  {
+    "category": "Tables",
+    "name": "Round Banquet Table",
+    "price": 15,
+    "unit": "per event"
+  },
+  {
+    "category": "Chairs",
+    "name": "Folding Chair",
+    "price": 2,
+    "unit": "per event"
+  },
+  {
+    "category": "Chairs",
+    "name": "Padded Banquet Chair",
+    "price": 4,
+    "unit": "per event"
+  },
+  {
+    "category": "Tents",
+    "name": "10x10 Canopy Tent",
+    "price": 80,
+    "unit": "per event"
+  },
+  {
+    "category": "Decor",
+    "name": "Table Linen Set",
+    "price": 10,
+    "unit": "per table"
+  },
+  {
+    "category": "Catering",
+    "name": "Buffet Setup (no food)",
+    "price": 150,
+    "unit": "per event"
+  }
+]
+```
+
+---
+
+### `/events/app.js`
+
+```js
+const inventoryGrid = document.getElementById('inventoryGrid');
+const bookingForm = document.getElementById('bookingForm');
+
+async function loadInventory() {
+  try {
+    const res = await fetch('inventory.json');
+    const items = await res.json();
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'dp-card';
+      card.innerHTML = `
+        <h3>${item.name}</h3>
+        <p><strong>Category:</strong> ${item.category}</p>
+        <p><strong>Rate:</strong> $${item.price} ${item.unit}</p>
+      `;
+      inventoryGrid.appendChild(card);
+    });
+  } catch (e) {
+    console.error('Failed to load inventory', e);
+  }
+}
+
+bookingForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const booking = {
+    eventType: document.getElementById('eventTypeInput').value,
+    date: document.getElementById('dateInput').value,
+    time: document.getElementById('timeInput').value,
+    location: document.getElementById('locationInput').value,
+    guests: document.getElementById('guestsInput').value,
+    selectedItems: document.getElementById('selectedItemsInput').value,
+    name: document.getElementById('nameInput').value,
+    email: document.getElementById('emailInput').value,
+    phone: document.getElementById('phoneInput').value
+  };
+
+  console.log('Booking request (save or email this):', booking);
+  alert('Booking request submitted. Dynasty Party Co. will contact you to confirm details and provide a quote.');
+  bookingForm.reset();
+});
+
+loadInventory();
+```
+
+---
+
+You can now:
+
+1. Create a new Replit (HTML/CSS/JS).  
+2. Recreate this folder structure and paste each file.  
+3. Connect Replit to a new GitHub repo and push.  
+
+When your coin is live and logistics API exists, just fill in `config.js` and start wiring calls.
