@@ -1,0 +1,1100 @@
+Here’s the unified **`borders-dynasty-hub`** monorepo wired for Omega, coin + logistics, with your Omega password set to **`Devenity1008`** (local, hybrid‑ready).
+
+---
+
+### Folder structure
+
+```text
+borders-dynasty-hub/
+  index.html
+  styles.css
+  main.js
+  config.js
+
+  omega/
+    login.html
+    dashboard.html
+    omega.css
+    omega.js
+    auth.js
+
+  loadboard/
+    index.html
+    loadboard.css
+    loadboard.js
+
+  driver-app/
+    index.html
+    driver.css
+    driver.js
+
+  fleet-rental/
+    index.html
+    fleet.css
+    fleet.js
+
+  studio/
+    index.html
+    styles.css
+    app.js
+    products.json
+
+  events/
+    index.html
+    styles.css
+    app.js
+    inventory.json
+
+  contracts/
+    README.md
+
+  logistics-api/
+    package.json
+    server.js
+```
+
+---
+
+## Root
+
+### `config.js`
+
+```js
+// Global dynasty config – fill these when ready
+window.DYNASTY_CONFIG = {
+  sovereignCoinAddress: "",                 // BSC contract address
+  logisticsApiBaseUrl: "",                  // e.g. "https://your-logistics-api.onrender.com"
+  escrowContractAddress: "",                // mainnet escrow contract
+  omegaPortalTitle: "Omega Portal – Borders Dynasty"
+};
+```
+
+### `index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Borders Dynasty – Sovereign Portal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="bd-header">
+    <h1>Borders Dynasty</h1>
+    <p>Codex, Sovereign Coin, Logistics, and Dynasty Enterprises.</p>
+  </header>
+
+  <main class="bd-main">
+    <section class="bd-section">
+      <h2>Throne & Sovereign Notice</h2>
+      <p>
+        This portal serves as the public surface of the Borders Family Dynasty Nation,
+        including trust, ministries, logistics, and commercial platforms.
+      </p>
+    </section>
+
+    <section class="bd-section">
+      <h2>Dynasty Systems</h2>
+      <ul class="bd-links">
+        <li><a href="omega/login.html">Omega Portal – Admin</a></li>
+        <li><a href="loadboard/index.html">Loadboard – Shippers & Brokers</a></li>
+        <li><a href="driver-app/index.html">Driver App</a></li>
+        <li><a href="fleet-rental/index.html">Fleet Rental System</a></li>
+        <li><a href="studio/index.html">Divine Living – Custom Apparel Studio</a></li>
+        <li><a href="events/index.html">Dynasty Party Co. – Events & Rentals</a></li>
+      </ul>
+    </section>
+
+    <section class="bd-section">
+      <h2>Sovereign Coin</h2>
+      <p id="coinInfo">
+        Borders Sovereign Coin (BSC) operates on Binance Smart Chain as the primary
+        sovereign token of the dynasty. Integration into portals and enterprises is in progress.
+      </p>
+    </section>
+  </main>
+
+  <footer class="bd-footer">
+    <p>Borders Dynasty · Sovereign Architecture & Logistics</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
+```
+
+### `styles.css`
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+a {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.bd-header, .bd-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #030712;
+  border-bottom: 1px solid #1f2937;
+}
+
+.bd-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bd-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.bd-section {
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bd-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bd-links li {
+  margin-bottom: 0.5rem;
+}
+
+.bd-footer {
+  border-top: 1px solid #1f2937;
+}
+```
+
+### `main.js`
+
+```js
+console.log('Borders Dynasty root portal loaded.');
+
+const cfg = window.DYNASTY_CONFIG || {};
+const coinInfoEl = document.getElementById('coinInfo');
+
+if (cfg.sovereignCoinAddress && coinInfoEl) {
+  const link = document.createElement('a');
+  link.href = `https://bscscan.com/token/${cfg.sovereignCoinAddress}`;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = 'View Borders Sovereign Coin on BscScan';
+
+  const br = document.createElement('br');
+  coinInfoEl.appendChild(br);
+  coinInfoEl.appendChild(link);
+}
+```
+
+---
+
+## Omega Portal (hybrid‑ready, local password now)
+
+### `omega/login.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Omega Portal Login</title>
+  <link rel="stylesheet" href="omega.css">
+</head>
+<body class="omega-body">
+  <div class="omega-card">
+    <h1 id="omegaTitle">Omega Portal</h1>
+    <p class="omega-sub">Borders Dynasty · Admin Access</p>
+
+    <form id="loginForm">
+      <label>
+        Password
+        <input type="password" id="passwordInput" required>
+      </label>
+      <button type="submit">Enter Omega</button>
+    </form>
+
+    <p class="omega-note">
+      Authorized dynasty personnel only. All actions are logged.
+    </p>
+  </div>
+
+  <script src="../config.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>
+```
+
+### `omega/dashboard.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Omega Dashboard – Borders Dynasty</title>
+  <link rel="stylesheet" href="omega.css">
+</head>
+<body class="omega-body">
+  <header class="omega-header">
+    <h1>Omega Dashboard</h1>
+    <button id="logoutBtn">Logout</button>
+  </header>
+
+  <main class="omega-main">
+    <section class="omega-panel">
+      <h2>Dynasty Overview</h2>
+      <ul>
+        <li><a href="../studio/index.html" target="_blank">Divine Living</a></li>
+        <li><a href="../events/index.html" target="_blank">Dynasty Party Co.</a></li>
+        <li><a href="../loadboard/index.html" target="_blank">Loadboard</a></li>
+        <li><a href="../driver-app/index.html" target="_blank">Driver App</a></li>
+        <li><a href="../fleet-rental/index.html" target="_blank">Fleet Rental</a></li>
+      </ul>
+    </section>
+
+    <section class="omega-panel">
+      <h2>Coin & Escrow</h2>
+      <p id="coinData">Loading coin config…</p>
+      <p id="escrowData">Loading escrow config…</p>
+    </section>
+
+    <section class="omega-panel">
+      <h2>Logistics API</h2>
+      <p id="apiStatus">Checking API status…</p>
+      <button id="pingApiBtn">Ping Logistics API</button>
+    </section>
+  </main>
+
+  <footer class="omega-footer">
+    <p>Omega Portal · Borders Dynasty</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="omega.js"></script>
+</body>
+</html>
+```
+
+### `omega/omega.css`
+
+```css
+.omega-body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #1d2433, #020617);
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+
+.omega-card {
+  max-width: 360px;
+  margin: 10vh auto;
+  padding: 2rem;
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  text-align: center;
+}
+
+.omega-card h1 {
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.omega-sub {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+label {
+  display: block;
+  text-align: left;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+input {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+button {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.omega-note {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.omega-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #020617;
+  border-bottom: 1px solid #1f2937;
+}
+
+.omega-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.omega-panel {
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem;
+}
+
+.omega-footer {
+  text-align: center;
+  padding: 1rem;
+  border-top: 1px solid #1f2937;
+  background: #020617;
+  font-size: 0.85rem;
+}
+```
+
+### `omega/auth.js`  (local password now, backend‑ready later)
+
+```js
+// Simple local auth – hybrid: can be replaced by backend later
+
+const OMEGA_PASSWORD = "Devenity1008"; // your chosen password
+const STORAGE_KEY = "omega_auth";
+
+function setAuthenticated() {
+  localStorage.setItem(STORAGE_KEY, "true");
+}
+
+function isAuthenticated() {
+  return localStorage.getItem(STORAGE_KEY) === "true";
+}
+
+function clearAuth() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// Login page logic
+const loginForm = document.getElementById('loginForm');
+const passwordInput = document.getElementById('passwordInput');
+const omegaTitle = document.getElementById('omegaTitle');
+
+if (omegaTitle && window.DYNASTY_CONFIG?.omegaPortalTitle) {
+  omegaTitle.textContent = window.DYNASTY_CONFIG.omegaPortalTitle;
+}
+
+if (loginForm && passwordInput) {
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const pwd = passwordInput.value;
+    if (pwd === OMEGA_PASSWORD) {
+      setAuthenticated();
+      window.location.href = "dashboard.html";
+    } else {
+      alert("Incorrect Omega password.");
+    }
+  });
+}
+```
+
+### `omega/omega.js`
+
+```js
+// Omega dashboard logic
+
+const cfg = window.DYNASTY_CONFIG || {};
+const STORAGE_KEY = "omega_auth";
+
+function isAuthenticated() {
+  return localStorage.getItem(STORAGE_KEY) === "true";
+}
+
+if (!isAuthenticated()) {
+  window.location.href = "login.html";
+}
+
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    window.location.href = "login.html";
+  });
+}
+
+const coinData = document.getElementById('coinData');
+const escrowData = document.getElementById('escrowData');
+const apiStatus = document.getElementById('apiStatus');
+const pingApiBtn = document.getElementById('pingApiBtn');
+
+if (coinData) {
+  if (cfg.sovereignCoinAddress) {
+    coinData.innerHTML = `
+      Sovereign Coin: <a href="https://bscscan.com/token/${cfg.sovereignCoinAddress}" target="_blank">
+      ${cfg.sovereignCoinAddress}</a>
+    `;
+  } else {
+    coinData.textContent = "Sovereign Coin address not set in config.js.";
+  }
+}
+
+if (escrowData) {
+  if (cfg.escrowContractAddress) {
+    escrowData.textContent = `Escrow Contract: ${cfg.escrowContractAddress}`;
+  } else {
+    escrowData.textContent = "Escrow contract address not set in config.js.";
+  }
+}
+
+if (pingApiBtn && apiStatus) {
+  pingApiBtn.addEventListener('click', async () => {
+    if (!cfg.logisticsApiBaseUrl) {
+      apiStatus.textContent = "Logistics API base URL not set in config.js.";
+      return;
+    }
+    apiStatus.textContent = "Pinging API…";
+    try {
+      const res = await fetch(cfg.logisticsApiBaseUrl + "/health");
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        apiStatus.textContent = "API OK: " + (data.status || "healthy");
+      } else {
+        apiStatus.textContent = "API error: " + res.status;
+      }
+    } catch (e) {
+      apiStatus.textContent = "API unreachable.";
+      console.error(e);
+    }
+  });
+}
+```
+
+---
+
+## Loadboard UI
+
+### `loadboard/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loadboard – Borders Dynasty</title>
+  <link rel="stylesheet" href="loadboard.css">
+</head>
+<body>
+  <header class="lb-header">
+    <h1>Dynasty Loadboard</h1>
+    <p>Shippers & brokers – view available loads.</p>
+  </header>
+
+  <main class="lb-main">
+    <section class="lb-section">
+      <h2>Available Loads</h2>
+      <div id="loadsGrid" class="lb-grid"></div>
+      <p id="loadsStatus" class="lb-status"></p>
+    </section>
+  </main>
+
+  <footer class="lb-footer">
+    <p>Borders Dynasty · Logistics</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="loadboard.js"></script>
+</body>
+</html>
+```
+
+### `loadboard/loadboard.css`
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.lb-header, .lb-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #030712;
+  border-bottom: 1px solid #1f2937;
+}
+
+.lb-main {
+  padding: 1.5rem;
+}
+
+.lb-section {
+  max-width: 960px;
+  margin: 0 auto;
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem;
+}
+
+.lb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.lb-card {
+  background: #030712;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 0.75rem;
+}
+
+.lb-card h3 {
+  margin: 0 0 0.25rem 0;
+}
+
+.lb-card p {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+}
+
+.lb-status {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+```
+
+### `loadboard/loadboard.js`
+
+```js
+const loadsGrid = document.getElementById('loadsGrid');
+const loadsStatus = document.getElementById('loadsStatus');
+const cfgLB = window.DYNASTY_CONFIG || {};
+
+async function loadLoads() {
+  if (!cfgLB.logisticsApiBaseUrl) {
+    loadsStatus.textContent = "Logistics API base URL not set in config.js.";
+    return;
+  }
+  loadsStatus.textContent = "Loading loads…";
+  try {
+    const res = await fetch(cfgLB.logisticsApiBaseUrl + "/loads");
+    if (!res.ok) {
+      loadsStatus.textContent = "Error loading loads: " + res.status;
+      return;
+    }
+    const loads = await res.json();
+    loadsGrid.innerHTML = '';
+    if (!Array.isArray(loads) || loads.length === 0) {
+      loadsStatus.textContent = "No loads available.";
+      return;
+    }
+    loads.forEach(load => {
+      const card = document.createElement('div');
+      card.className = 'lb-card';
+      card.innerHTML = `
+        <h3>${load.reference || 'Load'}</h3>
+        <p><strong>Origin:</strong> ${load.origin}</p>
+        <p><strong>Destination:</strong> ${load.destination}</p>
+        <p><strong>Rate:</strong> ${load.rate}</p>
+        <p><strong>Status:</strong> ${load.status}</p>
+      `;
+      loadsGrid.appendChild(card);
+    });
+    loadsStatus.textContent = "";
+  } catch (e) {
+    console.error(e);
+    loadsStatus.textContent = "Failed to load loads.";
+  }
+}
+
+loadLoads();
+```
+
+---
+
+## Driver App
+
+### `driver-app/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Driver App – Borders Dynasty</title>
+  <link rel="stylesheet" href="driver.css">
+</head>
+<body>
+  <header class="dr-header">
+    <h1>Driver App</h1>
+    <p>View assigned loads and update status.</p>
+  </header>
+
+  <main class="dr-main">
+    <section class="dr-section">
+      <h2>Your Loads</h2>
+      <div id="driverLoads" class="dr-grid"></div>
+      <p id="driverStatus" class="dr-status"></p>
+    </section>
+  </main>
+
+  <footer class="dr-footer">
+    <p>Borders Dynasty · Drivers</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="driver.js"></script>
+</body>
+</html>
+```
+
+### `driver-app/driver.css`
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.dr-header, .dr-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #030712;
+  border-bottom: 1px solid #1f2937;
+}
+
+.dr-main {
+  padding: 1.5rem;
+}
+
+.dr-section {
+  max-width: 960px;
+  margin: 0 auto;
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem;
+}
+
+.dr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.dr-card {
+  background: #030712;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 0.75rem;
+}
+
+.dr-card h3 {
+  margin: 0 0 0.25rem 0;
+}
+
+.dr-card p {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+}
+
+.dr-status {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.dr-card button {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.4rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f9fafb;
+  font-weight: 600;
+}
+```
+
+### `driver-app/driver.js`
+
+```js
+const driverLoads = document.getElementById('driverLoads');
+const driverStatus = document.getElementById('driverStatus');
+const cfgDR = window.DYNASTY_CONFIG || {};
+
+// For now, we assume a single driver ID hardcoded or later from login
+const DRIVER_ID = "driver-001";
+
+async function loadDriverLoads() {
+  if (!cfgDR.logisticsApiBaseUrl) {
+    driverStatus.textContent = "Logistics API base URL not set in config.js.";
+    return;
+  }
+  driverStatus.textContent = "Loading your loads…";
+  try {
+    const res = await fetch(cfgDR.logisticsApiBaseUrl + "/drivers/" + DRIVER_ID + "/loads");
+    if (!res.ok) {
+      driverStatus.textContent = "Error loading loads: " + res.status;
+      return;
+    }
+    const loads = await res.json();
+    driverLoads.innerHTML = '';
+    if (!Array.isArray(loads) || loads.length === 0) {
+      driverStatus.textContent = "No assigned loads.";
+      return;
+    }
+    loads.forEach(load => {
+      const card = document.createElement('div');
+      card.className = 'dr-card';
+      card.innerHTML = `
+        <h3>${load.reference || 'Load'}</h3>
+        <p><strong>Origin:</strong> ${load.origin}</p>
+        <p><strong>Destination:</strong> ${load.destination}</p>
+        <p><strong>Status:</strong> ${load.status}</p>
+      `;
+      const btn = document.createElement('button');
+      btn.textContent = "Mark as Delivered";
+      btn.addEventListener('click', () => updateStatus(load.id, "delivered"));
+      card.appendChild(btn);
+      driverLoads.appendChild(card);
+    });
+    driverStatus.textContent = "";
+  } catch (e) {
+    console.error(e);
+    driverStatus.textContent = "Failed to load loads.";
+  }
+}
+
+async function updateStatus(loadId, status) {
+  if (!cfgDR.logisticsApiBaseUrl) return;
+  try {
+    const res = await fetch(cfgDR.logisticsApiBaseUrl + "/loads/" + loadId + "/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, driverId: DRIVER_ID })
+    });
+    if (res.ok) {
+      alert("Status updated.");
+      loadDriverLoads();
+    } else {
+      alert("Failed to update status: " + res.status);
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Error updating status.");
+  }
+}
+
+loadDriverLoads();
+```
+
+---
+
+## Fleet Rental
+
+### `fleet-rental/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fleet Rental – Borders Dynasty</title>
+  <link rel="stylesheet" href="fleet.css">
+</head>
+<body>
+  <header class="fl-header">
+    <h1>Fleet Rental</h1>
+    <p>Trucks, trailers, and equipment for dynasty operations.</p>
+  </header>
+
+  <main class="fl-main">
+    <section class="fl-section">
+      <h2>Available Units</h2>
+      <div id="fleetGrid" class="fl-grid"></div>
+      <p id="fleetStatus" class="fl-status"></p>
+    </section>
+  </main>
+
+  <footer class="fl-footer">
+    <p>Borders Dynasty · Fleet Rental</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="fleet.js"></script>
+</body>
+</html>
+```
+
+### `fleet-rental/fleet.css`
+
+```css
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.fl-header, .fl-footer {
+  text-align: center;
+  padding: 1.5rem;
+  background: #030712;
+  border-bottom: 1px solid #1f2937;
+}
+
+.fl-main {
+  padding: 1.5rem;
+}
+
+.fl-section {
+  max-width: 960px;
+  margin: 0 auto;
+  background: #020617;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 1rem;
+}
+
+.fl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.fl-card {
+  background: #030712;
+  border-radius: 0.75rem;
+  border: 1px solid #1f2937;
+  padding: 0.75rem;
+}
+
+.fl-card h3 {
+  margin: 0 0 0.25rem 0;
+}
+
+.fl-card p {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+}
+
+.fl-status {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+```
+
+### `fleet-rental/fleet.js`
+
+```js
+const fleetGrid = document.getElementById('fleetGrid');
+const fleetStatus = document.getElementById('fleetStatus');
+const cfgFL = window.DYNASTY_CONFIG || {};
+
+async function loadFleet() {
+  if (!cfgFL.logisticsApiBaseUrl) {
+    fleetStatus.textContent = "Logistics API base URL not set in config.js.";
+    return;
+  }
+  fleetStatus.textContent = "Loading fleet…";
+  try {
+    const res = await fetch(cfgFL.logisticsApiBaseUrl + "/fleet");
+    if (!res.ok) {
+      fleetStatus.textContent = "Error loading fleet: " + res.status;
+      return;
+    }
+    const units = await res.json();
+    fleetGrid.innerHTML = '';
+    if (!Array.isArray(units) || units.length === 0) {
+      fleetStatus.textContent = "No units available.";
+      return;
+    }
+    units.forEach(unit => {
+      const card = document.createElement('div');
+      card.className = 'fl-card';
+      card.innerHTML = `
+        <h3>${unit.name}</h3>
+        <p><strong>Type:</strong> ${unit.type}</p>
+        <p><strong>Rate:</strong> ${unit.rate}</p>
+        <p><strong>Status:</strong> ${unit.status}</p>
+      `;
+      fleetGrid.appendChild(card);
+    });
+    fleetStatus.textContent = "";
+  } catch (e) {
+    console.error(e);
+    fleetStatus.textContent = "Failed to load fleet.";
+  }
+}
+
+loadFleet();
+```
+
+---
+
+## Divine Living (`/studio`) and Dynasty Party Co. (`/events`)
+
+Use exactly the versions I already gave you in the previous message (they’re already clean and ready). You can paste them as‑is into:
+
+- `studio/index.html`, `studio/styles.css`, `studio/app.js`, `studio/products.json`  
+- `events/index.html`, `events/styles.css`, `events/app.js`, `events/inventory.json`
+
+---
+
+## Contracts
+
+### `contracts/README.md`
+
+```md
+# Contracts
+
+- Borders Sovereign Coin (BSC) – deployed on BSC mainnet.
+- Escrow contracts – native coin or token-based.
+
+Store your Solidity files and deployment notes here.
+```
+
+---
+
+## Logistics API (Node.js skeleton)
+
+### `logistics-api/package.json`
+
+```json
+{
+  "name": "borders-logistics-api",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
+```
+
+### `logistics-api/server.js`
+
+```js
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Simple in-memory data for now
+let loads = [
+  { id: "load-1", reference: "DL-1001", origin: "Los Angeles, CA", destination: "Phoenix, AZ", rate: "$1200", status: "available" }
+];
+
+let fleet = [
+  { id: "unit-1", name: "Truck 001", type: "Tractor", rate: "$500/day", status: "available" }
+];
+
+let driverLoads = {
+  "driver-001": [
+    { id: "load-1", reference: "DL-1001", origin: "Los Angeles, CA", destination: "Phoenix, AZ", status: "assigned" }
+  ]
+};
+
+app.get('/health', (req, res) => {
+  res.json({ status: "healthy" });
+});
+
+app.get('/loads', (req, res) => {
+  res.json(loads);
+});
+
+app.get('/drivers/:driverId/loads', (req, res) => {
+  const { driverId } = req.params;
+  res.json(driverLoads[driverId] || []);
+});
+
+app.post('/loads/:loadId/status', (req, res) => {
+  const { loadId } = req.params;
+  const { status } = req.body;
+  loads = loads.map(l => l.id === loadId ? { ...l, status } : l);
+  Object.keys(driverLoads).forEach(did => {
+    driverLoads[did] = (driverLoads[did] || []).map(l => l.id === loadId ? { ...l, status } : l);
+  });
+  res.json({ ok: true });
+});
+
+app.get('/fleet', (req, res) => {
+  res.json(fleet);
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log('Logistics API running on port', PORT);
+});
+```
+
+---
+
+You can now:
+
+1. Create a new Replit (HTML/CSS/JS) and paste this structure.  
+2. Optionally create a separate Replit for `logistics-api` (Node.js) and set its URL in `config.js`.  
+3. Connect to GitHub and push as `borders-dynasty-hub`.  
+
+When you’re ready, we can wire in the **real BSC coin address** and **escrow contract** into `config.js` and extend Omega to control them.
