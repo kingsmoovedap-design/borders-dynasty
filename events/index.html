@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynasty Party Co. – Events & Rentals</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="ep-header">
+    <h1>Dynasty Party Co.</h1>
+    <p>Premium events and rentals curated by the Borders Dynasty.</p>
+  </header>
+
+  <main class="ep-main">
+    <section class="ep-inventory">
+      <h2>Available for Rental</h2>
+      <div id="inventoryGrid" class="ep-grid"></div>
+    </section>
+
+    <section class="ep-booking">
+      <h2>Inquiry & Booking</h2>
+      <form id="bookingForm">
+        <label>
+          Event Date
+          <input type="date" id="eventDate" required>
+        </label>
+        <label>
+          Full Name
+          <input type="text" id="nameInput" required>
+        </label>
+        <label>
+          Email
+          <input type="email" id="emailInput" required>
+        </label>
+        <button type="submit">Submit Inquiry</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="ep-footer">
+    <p>Dynasty Party Co. · A Borders Dynasty Enterprise</p>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
