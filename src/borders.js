@@ -1,32 +1,25 @@
+import { renderApp } from "./server.js"; // or wherever your render logic lives
+
 export const metadata = {
-    name: "borders",
-    version: "1.0.0",
-    description: "Borders Dynasty subsystem integrated into Dynasty-CLI",
-    hooks: []
+  name: "borders",
+  version: "1.0.0",
+  description: "Borders Dynasty subsystem with render hooks",
+  hooks: []
 };
 
-export function bordersCommands(args, runtime) {
-    const action = args[0];
-
-    if (!action) {
-        runtime.logger.info("Borders Dynasty Commands:");
-        console.log("  borders info      - Show info");
-        console.log("  borders run       - Run subsystem");
-        return;
-    }
-
-    switch (action) {
-        case "info":
-            runtime.logger.info("Borders Dynasty subsystem active.");
-            return;
-
-        case "run":
-            runtime.logger.info("Running Borders Dynasty subsystem...");
-            // Here you can call your repo’s logic
-            return;
-
-        default:
-            runtime.logger.error(`Unknown borders command: '${action}'`);
-            return;
-    }
+export async function bordersCommands(args, runtime) {
+  const action = args[0];
+  switch (action) {
+    case "start":
+      runtime.logger.info("Starting Borders render subsystem...");
+      await renderApp(); // call your render() or server start
+      console.log("Borders render subsystem running.");
+      break;
+    case "stop":
+      runtime.logger.info("Stopping Borders subsystem...");
+      process.exit(0);
+      break;
+    default:
+      console.log("Usage: borders start | stop");
+  }
 }
